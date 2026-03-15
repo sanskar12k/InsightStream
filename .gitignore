@@ -1,0 +1,28 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+GOOGLE_OAUTH_SETUP.md
+IMPLEMENTATION_SUMMARY.md
+JSON_SERIALIZATION_FIX.md
+OAUTH_UI_UPDATE.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+scrape_results/
+final_result/
+review_analysis_file_path
+summarized_reviews.csv

@@ -1,0 +1,76 @@
+-- Users table
+CREATE TABLE users (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(128) NOT NULL,
+    last_login DATETIME,
+    created_at DATETIME NOT NULL,
+    INDEX idx_name (name),
+    INDEX idx_email (email)
+);
+
+-- Searches table
+CREATE TABLE searches (
+    search_id VARCHAR(100) PRIMARY KEY,
+    user_id INT NOT NULL,
+    platforms VARCHAR(200) DEFAULT 'amazon' NOT NULL,
+    product_name VARCHAR(100) NOT NULL,
+    status ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED') DEFAULT 'pending' NOT NULL,
+    category VARCHAR(100),
+    deep_details INT NOT NULL DEFAULT 1,
+    max_products INT NOT NULL DEFAULT 80,
+    include_reviews INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    started_at DATETIME,
+    completed_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status),
+    INDEX idx_category (category)
+);
+
+-- Products table
+CREATE TABLE products (
+    product_id INT PRIMARY KEY AUTO_INCREMENT,
+    search_id VARCHAR(100) NOT NULL,
+    platform VARCHAR(50) NOT NULL,
+    brand VARCHAR(100),
+    product_name VARCHAR(500) NOT NULL,
+    current_price DECIMAL(10,2),
+    mrp DECIMAL(10,2),
+    discount_percentage DECIMAL(5,2),
+    rating DECIMAL(3,2),
+    review_count INT DEFAULT 0,
+    url TEXT NOT NULL,
+    weight VARCHAR(50),
+    net_quantity VARCHAR(50),
+    form VARCHAR(50),
+    manufacturer VARCHAR(200),
+    ingredient_type VARCHAR(100),
+    dimensions VARCHAR(100),
+    country_of_origin VARCHAR(100),
+    scrape_date DATETIME,
+    last_updated DATETIME,
+    FOREIGN KEY (search_id) REFERENCES searches(search_id) ON DELETE CASCADE,
+    INDEX idx_search_id (search_id),
+    INDEX idx_platform (platform),
+    INDEX idx_brand (brand)
+);
+
+-- Reviews table
+CREATE TABLE reviews (
+    review_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT NOT NULL,
+    platform VARCHAR(50) NOT NULL,
+    reviewer_name VARCHAR(200),
+    rating INT,
+    review_title VARCHAR(500),
+    review_text TEXT,
+    review_date DATETIME,
+    verified_purchase BOOLEAN DEFAULT FALSE,
+    helpful_count INT DEFAULT 0,
+    scrape_date DATETIME,
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+    INDEX idx_product_id (product_id)
+);
