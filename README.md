@@ -410,12 +410,6 @@ We welcome contributions! Please follow these steps:
 
 ---
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 ## Roadmap
 
 - [ ] Multi-platform scraping support (Amazon, Flipkart, etc.)
@@ -442,7 +436,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **GitHub Issues**: [Report bugs or request features](https://github.com/sanskar12k/InsightStream/issues)
 - **Email**: sanskar.iitkgp@gmail.com
-- **Documentation**: [Full docs](https://docs.insightstream.dev)
 
 ---
 
