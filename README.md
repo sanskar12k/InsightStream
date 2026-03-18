@@ -4,7 +4,6 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![React](https://img.shields.io/badge/React-18.2-61dafb.svg)](https://reactjs.org/)
-[![PySpark](https://img.shields.io/badge/PySpark-3.x-orange.svg)](https://spark.apache.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Modern-009688.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -17,7 +16,6 @@ InsightStream is an intelligent e-commerce analytics platform that scrapes produ
 ### Why InsightStream?
 
 - **AI-Driven Analysis**: Powered by Claude AI to extract sentiment, quality ratings, and aspect-specific insights from thousands of reviews
-- **Scalable Processing**: Built on Apache Spark for handling massive datasets efficiently
 - **Smart Ranking**: Implements Bayesian averaging for more accurate product and brand rankings
 - **Interactive Dashboard**: Beautiful React-based UI with real-time data visualization
 - **Cloud-Native Storage**: Leverages Cloudflare R2 for scalable, cost-effective data storage
@@ -43,7 +41,6 @@ InsightStream is an intelligent e-commerce analytics platform that scrapes produ
 
 ### Backend
 - **FastAPI**: High-performance async API framework
-- **Apache PySpark**: Distributed data processing engine
 - **MySQL**: Relational database for user data and search history
 - **Cloudflare R2**: Object storage for scraped data and analysis results
 - **python-dotenv**: Environment configuration management
