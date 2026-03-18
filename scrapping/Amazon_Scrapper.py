@@ -78,26 +78,26 @@ class AmazonScraper(BaseScraper):
 
             next_page_url = next_page_elem.get_attribute('href')
 
-            # if next_page_url:
-            #     logger.info("Next page URL found. Navigating..." + next_page_url)
+            if next_page_url:
+                logger.info("Next page URL found. Navigating..." + next_page_url)
 
-            #     driver.get(next_page_url)
+                driver.get(next_page_url)
             
-            # else:
-            #     logger.info("Navigating to next page by clicking button"+next_page_url)
-            #     driver.execute_script("arguments[0].click();", next_page_url)
-            # time.sleep(1)
-            # WebDriverWait(driver, 10).until(
-            #     EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component-type="s-search-result"]'))
-            # )
-            # product_data.extend(self.scrape_basic_product_details_helper(driver))
+            else:
+                logger.info("Navigating to next page by clicking button"+next_page_url)
+                driver.execute_script("arguments[0].click();", next_page_url)
+            time.sleep(1)
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component-type="s-search-result"]'))
+            )
+            product_data.extend(self.scrape_basic_product_details_helper(driver))
         except:            
             logger.info("No next page found")
             pass
         return product_data
 
     def scrape_basic_product_details(self, driver, search_url: str, attempt:int = 0, max_products: int = 80) -> Dict[str, Optional[str]]:
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component-type="s-search-result"]'))
         )   
         product_data = []
@@ -132,8 +132,8 @@ class AmazonScraper(BaseScraper):
                     product['review_summary'] = None   
                 try:
                     if reviews:
-                        with self.lock:
-                            logger.info("Extracting reviews list")
+                        # with self.lock:
+                        #     logger.info("Extracting reviews list")
                         reviews_list = driver.find_elements(By.CSS_SELECTOR, '[data-hook="review"]')
                         for review in reviews_list:
                             review_text = ' '.join(self._extract_text(review.find_element(By.CSS_SELECTOR, '[data-hook="review-collapsed"]')).split())
@@ -145,8 +145,8 @@ class AmazonScraper(BaseScraper):
                 except Exception as e:
                     logger.error(f"Error extracting reviews list: {e}")
                 try:   
-                    with self.lock:
-                        logger.info("Extracting product details from table")
+                    # with self.lock:
+                    #     logger.info("Extracting product details from table")
                     details = self.extract_product_details_robust(driver)
                     product['brand'] = details['brand']  # Use table brand if available
                     product['weight'] = details['weight']
@@ -173,9 +173,6 @@ class AmazonScraper(BaseScraper):
     
     def extract_product_details_robust(self, driver) -> Dict[str, Optional[str]]:
         """Extract product details from Amazon's new UI using Detail Bullets list"""
-        with self.lock:
-            logger.info("inside product detail")
-        
         details = {
             'brand': None,
             'weight': None,
@@ -203,10 +200,6 @@ class AmazonScraper(BaseScraper):
         }
 
         try:
-            logger.info("Extracting product details from new Amazon UI")
-
-            # === EXPAND DETAIL BULLETS ACCORDION ===
-            # self._expand_detail_bullets_accordion(driver)
 
             # === EXTRACT FROM DETAIL BULLETS UL LIST ===
             brand_from_snapshot = self.extract_brand_name(driver)
@@ -223,7 +216,6 @@ class AmazonScraper(BaseScraper):
                 review_elem = driver.find_element(By.CSS_SELECTOR, '#averageCustomerReviews_feature_div #acrCustomerReviewText')
                 if review_elem:
                     details['review_count'] = str(self._parse_review_count(review_elem.text))
-                    logger.info(f"Found review_count: {details['review_count']}")
             except Exception as e:
                 logger.debug(f"Review count not found: {e}")
             
@@ -233,7 +225,7 @@ class AmazonScraper(BaseScraper):
                 mrp_elem = id_elem.find_element(By.CSS_SELECTOR, ".a-spacing-small.aok-align-center .aok-relative .a-text-price span[aria-hidden='true']")
                 if mrp_elem:
                     details['mrp'] = str(self._parse_price(mrp_elem.get_attribute("textContent").strip()))
-                    logger.info(f"Found mrp: {details['mrp']}")
+                    # logger.info(f"Found mrp: {details['mrp']}")
             except Exception as e:
                 logger.debug(f"MRP not found: {e}")
 
@@ -243,7 +235,7 @@ class AmazonScraper(BaseScraper):
                     details[key] = details[key].replace('\u200e', '').replace('\u200f', '').strip()
             
             found_count = sum(1 for v in details.values() if v)
-            logger.info(f"✓ Extracted product details: {found_count}/{len(details)} fields found")
+            # logger.info(f"✓ Extracted product details: {found_count}/{len(details)} fields found")
             
             return details
             
@@ -255,7 +247,7 @@ class AmazonScraper(BaseScraper):
     def extract_from_detail_bullets_list(self, driver, field_mapping, details):
         """Extract product details from the Detail Bullets UL list under 'Product details' heading"""
         
-        logger.info("Extracting from Detail Bullets list...")
+        # logger.info("Extracting from Detail Bullets list...")
         
         # Try multiple selectors for the UL element
         ul_selectors = [
@@ -271,7 +263,7 @@ class AmazonScraper(BaseScraper):
             try:
                 ul_element = driver.find_element(By.CSS_SELECTOR, selector)
                 if ul_element:
-                    logger.info(f"✓ Found Detail Bullets UL with selector: {selector}")
+                    # logger.info(f"✓ Found Detail Bullets UL with selector: {selector}")
                     break
             except:
                 continue
@@ -343,7 +335,7 @@ class AmazonScraper(BaseScraper):
                 logger.debug(f"Item {idx}: Error processing - {e}")
                 continue
         
-        logger.info("✓ Finished extracting from Detail Bullets list")
+        # logger.info("✓ Finished extracting from Detail Bullets list")
 
     def _normalize_weight_to_grams(self, weight_str: str) -> Optional[str]:
         """
@@ -398,7 +390,7 @@ class AmazonScraper(BaseScraper):
             else:
                 result = f"{grams:.2f}"
             
-            logger.info(f"Normalized weight: '{weight_str}' -> '{result}' grams")
+            # logger.info(f"Normalized weight: '{weight_str}' -> '{result}' grams")
             return result
             
         except Exception as e:
@@ -422,7 +414,7 @@ class AmazonScraper(BaseScraper):
                 if label_lower == header.lower():
                     if not details[field]:
                         details[field] = value
-                        logger.info(f"  ✓ EXACT match field '{field}': {value}")
+                        # logger.info(f"  ✓ EXACT match field '{field}': {value}")
                         return True
         
         # If no exact match, try partial match
@@ -432,7 +424,7 @@ class AmazonScraper(BaseScraper):
                 if header.lower() in label_lower:
                     if not details[field]:
                         details[field] = value
-                        logger.info(f"  ✓ PARTIAL match field '{field}': {value}")
+                        # logger.info(f"  ✓ PARTIAL match field '{field}': {value}")
                         return True
         
         # Log unmatched fields for debugging
@@ -469,7 +461,7 @@ class AmazonScraper(BaseScraper):
                     
                     # Filter out common non-brand text
                     if brand_name and brand_name.lower() not in ['visit', 'store', 'brand', 'flex']:
-                        logger.info(f"✓ Found brand from snapshot: {brand_name}")
+                        # logger.info(f"✓ Found brand from snapshot: {brand_name}")
                         return brand_name
                         
             except Exception as e:
@@ -485,7 +477,7 @@ class AmazonScraper(BaseScraper):
             if heading_element:
                 brand_name = self._extract_text(heading_element).strip()
                 if brand_name:
-                    logger.info(f"✓ Found brand from heading: {brand_name}")
+                    # logger.info(f"✓ Found brand from heading: {brand_name}")
                     return brand_name
         except:
             pass
@@ -501,7 +493,7 @@ class AmazonScraper(BaseScraper):
                     text = self._extract_text(span).strip()
                     # The brand name is usually the first substantial bold text
                     if text and len(text) > 1 and text.lower() not in ['visit', 'store', 'flex']:
-                        logger.info(f"✓ Found brand from container: {text}")
+                        # logger.info(f"✓ Found brand from container: {text}")
                         return text
         except:
             pass
@@ -516,7 +508,7 @@ class AmazonScraper(BaseScraper):
         """
         import time
         
-        logger.info("Extracting brand from Item Details accordion table...")
+        # logger.info("Extracting brand from Item Details accordion table...")
         
         # First, expand the accordion if it's collapsed
         try:
@@ -526,15 +518,14 @@ class AmazonScraper(BaseScraper):
             )
             
             if accordion_button and accordion_button.is_displayed():
-                logger.info("Item Details accordion is collapsed, expanding...")
+                # logger.info("Item Details accordion is collapsed, expanding...")
                 driver.execute_script(
                     "arguments[0].scrollIntoView({block: 'center'});",
                     accordion_button
                 )
-                time.sleep(0.2)
                 driver.execute_script("arguments[0].click();", accordion_button)
                 time.sleep(0.5)
-                logger.info("✓ Expanded Item Details accordion")
+                # logger.info("✓ Expanded Item Details accordion")
                 
         except Exception as e:
             logger.debug(f"Accordion already expanded or not found: {e}")
@@ -552,11 +543,11 @@ class AmazonScraper(BaseScraper):
                 if not table:
                     continue
                     
-                logger.info(f"✓ Found Item Details table with selector: {table_selector}")
+                # logger.info(f"✓ Found Item Details table with selector: {table_selector}")
                 
                 # Get all rows in the table
                 rows = table.find_elements(By.TAG_NAME, 'tr')
-                logger.info(f"Processing {len(rows)} rows from Item Details table...")
+                # logger.info(f"Processing {len(rows)} rows from Item Details table...")
                 
                 for idx, row in enumerate(rows, 1):
                     try:
@@ -570,7 +561,7 @@ class AmazonScraper(BaseScraper):
                         
                         # Check if this is the Brand Name field
                         if label.lower() in ['brand name', 'brand']:
-                            logger.info(f"✓ Found brand from Item Details table: {value}")
+                            # logger.info(f"✓ Found brand from Item Details table: {value}")
                             return value
                             
                     except Exception as e:
@@ -584,7 +575,7 @@ class AmazonScraper(BaseScraper):
                 logger.debug(f"Could not process table with selector {table_selector}: {e}")
                 continue
         
-        logger.info("Brand not found in Item Details accordion table")
+        # logger.info("Brand not found in Item Details accordion table")
         return None
 
     def extract_brand_name(self, driver) -> Optional[str]:
@@ -594,7 +585,7 @@ class AmazonScraper(BaseScraper):
         """
         import time
         
-        logger.info("Extracting brand name...")
+        # logger.info("Extracting brand name...")
         
         # ========================================
         # PRIORITY 1: Item Details Accordion Table (Most Accurate)
@@ -622,7 +613,7 @@ class AmazonScraper(BaseScraper):
                     brand_text = brand_text.replace('Visit the ', '').replace(' Store', '').replace('Brand: ', '').strip()
                     
                     if brand_text and len(brand_text) > 0:
-                        logger.info(f"✓ Found brand from byline: {brand_text}")
+                        # logger.info(f"✓ Found brand from byline: {brand_text}")
                         return brand_text
                         
             except Exception as e:
@@ -645,7 +636,7 @@ class AmazonScraper(BaseScraper):
                     
                     # Filter out non-brand text
                     if brand_name and brand_name.lower() not in ['visit', 'store', 'brand', 'flex', '']:
-                        logger.info(f"✓ Found brand from snapshot: {brand_name}")
+                        # logger.info(f"✓ Found brand from snapshot: {brand_name}")
                         return brand_name
                         
             except Exception as e:
@@ -675,7 +666,7 @@ class AmazonScraper(BaseScraper):
                         potential_brand = words[0] if words else None
                 
                 if potential_brand and len(potential_brand) > 1:
-                    logger.info(f"✓ Found potential brand from title: {potential_brand}")
+                    # logger.info(f"✓ Found potential brand from title: {potential_brand}")
                     return potential_brand
                     
         except Exception as e:
@@ -702,10 +693,8 @@ class AmazonScraper(BaseScraper):
                 with SeleniumDriver(proxy=proxy_str, headless=True) as driver:
                     logger.info(f"Loading Amazon search page (attempt {attempt + 1})")
                     driver.get(search_url)
-                    
                     # pick basic info of product
                     product_data = self.scrape_basic_product_details(driver, search_url, attempt, max_products)
-                    
                 if deep_details and product_data:
                     # go to prod url and get more details
                     with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_detail_workers) as executor:
