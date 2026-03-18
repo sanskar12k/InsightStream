@@ -24,7 +24,7 @@ app = FastAPI(
 
 # Session middleware for OAuth state management
 # Generate a secure secret key: python -c "import secrets; print(secrets.token_hex(32))"
-SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "your-secret-key-change-this-in-production")
+SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "your-secret-key-change-production")
 app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET_KEY,

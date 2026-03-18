@@ -88,9 +88,54 @@ const ProfilePage = () => {
       {/* Profile Information */}
       <div className="card">
         <div className="card-header">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Profile Information
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Profile Information
+            </h2>
+            {/* Three-dot menu button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSecurityMenu(!showSecurityMenu)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Profile options"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showSecurityMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowSecurityMenu(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-20">
+                    <button
+                      onClick={() => {
+                        setShowPasswordForm(true)
+                        setShowSecurityMenu(false)
+                      }}
+                      className="flex items-center space-x-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left transition-colors"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>Update Password</span>
+                    </button>
+                    <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                    <button
+                      onClick={() => {
+                        setShowDeleteConfirm(true)
+                        setShowSecurityMenu(false)
+                      }}
+                      className="flex items-center space-x-3 px-4 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 w-full text-left transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Delete Account</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
         <div className="card-body space-y-6">
           <div className="flex items-center space-x-4">
@@ -124,62 +169,6 @@ const ProfilePage = () => {
                   {formatDate(user?.created_at)}
                 </p>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Security Settings */}
-      <div className="card">
-        <div className="card-header">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Security Settings
-            </h2>
-            {/* Three-dot menu button */}
-            <div className="relative">
-              <button
-                onClick={() => setShowSecurityMenu(!showSecurityMenu)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                aria-label="Security options"
-              >
-                <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
-
-              {/* Dropdown Menu */}
-              {showSecurityMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowSecurityMenu(false)}
-                  ></div>
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-20">
-                    <button
-                      onClick={() => {
-                        setShowPasswordForm(true)
-                        setShowSecurityMenu(false)
-                      }}
-                      className="flex items-center space-x-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left transition-colors"
-                    >
-                      <Lock className="w-4 h-4" />
-                      <span>Change Password</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="card-body">
-          <div className="flex items-start space-x-3">
-            <div className="bg-red-100 dark:bg-red-900 p-2 rounded-lg">
-              <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
-            </div>
-            <div>
-              <h3 className="font-medium text-gray-900 dark:text-gray-100">Password</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Manage your account password
-              </p>
             </div>
           </div>
         </div>
@@ -283,69 +272,65 @@ const ProfilePage = () => {
         </div>
       )}
 
-      {/* Danger Zone */}
-      <div className="card border-red-200 dark:border-red-800">
-        <div className="card-header bg-red-50 dark:bg-red-900/20">
-          <h2 className="text-xl font-semibold text-red-900 dark:text-red-400">Danger Zone</h2>
-        </div>
-        <div className="card-body">
-          {!showDeleteConfirm ? (
-            <div className="flex items-start justify-between">
-              <div className="flex items-start space-x-3">
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center space-x-3">
                 <div className="bg-red-100 dark:bg-red-900 p-2 rounded-lg">
-                  <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
                 </div>
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100">Delete Account</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Permanently delete your account and all associated data
-                  </p>
-                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Delete Account
+                </h3>
               </div>
               <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="px-6 py-2 bg-red-600 dark:bg-red-700 text-white rounded-lg font-medium hover:bg-red-700 dark:hover:bg-red-800 transition-colors"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                Delete Account
+                <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
-          ) : (
-            <div className="space-y-4">
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <div className="flex items-start">
-                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mr-3 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="text-sm font-medium text-red-800 dark:text-red-400 mb-1">
-                      Warning: This action cannot be undone
-                    </h3>
-                    <p className="text-sm text-red-700 dark:text-red-300">
-                      Deleting your account will permanently remove all your data,
-                      including searches, results, and account information. This action
-                      is irreversible.
-                    </p>
-                  </div>
-                </div>
+                <h4 className="text-sm font-medium text-red-800 dark:text-red-400 mb-2">
+                  ⚠️ Warning: This action cannot be undone
+                </h4>
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  Deleting your account will permanently remove:
+                </p>
+                <ul className="mt-2 text-sm text-red-700 dark:text-red-300 list-disc list-inside space-y-1">
+                  <li>All your search history</li>
+                  <li>Saved analysis results</li>
+                  <li>Account information and preferences</li>
+                  <li>Access to InsightStream services</li>
+                </ul>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={handleDeleteAccount}
                   disabled={loading}
-                  className="px-6 py-2 bg-red-600 dark:bg-red-700 text-white rounded-lg font-medium hover:bg-red-700 dark:hover:bg-red-800 transition-colors disabled:opacity-50"
+                  className="flex-1 px-6 py-2.5 bg-red-600 dark:bg-red-700 text-white rounded-lg font-medium hover:bg-red-700 dark:hover:bg-red-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Deleting...' : 'Yes, Delete My Account'}
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="btn-ghost"
+                  className="flex-1 btn-secondary"
+                  disabled={loading}
                 >
                   Cancel
                 </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

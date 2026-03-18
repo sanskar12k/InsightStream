@@ -17,7 +17,7 @@ import {
   PolarRadiusAxis,
   Radar,
 } from 'recharts'
-import { TrendingUp, Package, Star, DollarSign, Award, AlertCircle, Loader } from 'lucide-react'
+import { TrendingUp, Package, Star, Award, AlertCircle, Loader } from 'lucide-react'
 import { scraperAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -71,9 +71,6 @@ const SearchInsights = ({ searchId, generatingInsights = false }) => {
 
     // Calculate summary statistics
     const totalProducts = silverData?.total_products || 0
-    const avgPrice = products.length > 0
-      ? products.reduce((sum, p) => sum + (parseFloat(p.Current_Price) || 0), 0) / products.length
-      : 0
     const avgRating = products.length > 0
       ? products.reduce((sum, p) => sum + (parseFloat(p.Rating) || 0), 0) / products.length
       : 0
@@ -82,7 +79,6 @@ const SearchInsights = ({ searchId, generatingInsights = false }) => {
     return {
       summary: {
         totalProducts,
-        avgPrice,
         avgRating,
         topBrand,
       },
@@ -159,7 +155,7 @@ const SearchInsights = ({ searchId, generatingInsights = false }) => {
       {activeTab === 'overview' && (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="card p-6">
               <div className="flex items-center justify-between mb-2">
                 <Package className="w-8 h-8 text-primary-600 dark:text-primary-400" />
@@ -169,17 +165,6 @@ const SearchInsights = ({ searchId, generatingInsights = false }) => {
                 {insights.summary.totalProducts}
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Products Found</p>
-            </div>
-
-            <div className="card p-6">
-              <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-green-600 dark:text-green-400" />
-                <span className="text-xs text-gray-500 dark:text-gray-400">Average</span>
-              </div>
-              <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                ₹{insights.summary.avgPrice.toFixed(0)}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Avg. Price</p>
             </div>
 
             <div className="card p-6">
