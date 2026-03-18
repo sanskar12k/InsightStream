@@ -12,6 +12,7 @@ from backend.services.db_services import DatabaseService as DBService
 import os
 import pandas as pd
 import numpy as np
+import time
 
 router = APIRouter(
     prefix="/scrapper",
@@ -128,13 +129,15 @@ def generate_insights(
     Generate insights from the scrapped data in R2 for a given search ID.
     This function will be called after the scrapping process is completed to generate insights and update the search record with insights data and insights file path.
     """
+    start_time = time.time()
     db = SessionLocal()
     try:
         from backend.storage.r2_storage import get_storage
         import data_pipeline.data_engg as generate_insights_module
-        import data_pipeline.review_analyze as review_analyzer
+        import data_pipeline.review_analyze_v2 as review_analyzer
 
         print(f"Generating insights for search_id: {search_id}")
+        print(f"Started at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
 
         # Extract product name and timestamp from filename
         filename_without_ext = output_file_name.replace('.csv', '')
@@ -179,8 +182,23 @@ def generate_insights(
             os.unlink(temp_product_path)
             os.unlink(temp_review_path)
 
+        # Log execution time
+        end_time = time.time()
+        duration_seconds = end_time - start_time
+        duration_minutes = duration_seconds / 60
+        print(f"\n{'='*60}")
+        print(f"Insights generation completed for search_id: {search_id}")
+        print(f"Ended at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+        print(f"Total execution time: {duration_minutes:.2f} minutes ({duration_seconds:.2f} seconds)")
+        print(f"{'='*60}\n")
+
     except Exception as e:
+        end_time = time.time()
+        duration_seconds = end_time - start_time
+        print(f"\n{'='*60}")
         print(f"Error during insights generation: {e}")
+        print(f"Failed after: {duration_seconds:.2f} seconds ({duration_seconds/60:.2f} minutes)")
+        print(f"{'='*60}\n")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

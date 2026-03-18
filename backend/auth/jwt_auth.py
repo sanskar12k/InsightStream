@@ -18,8 +18,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # JWT Settings
-SECRET_KEY = "-|0pJo:aiZA.Y|[[7E#f<z(DqF4u*OGI"
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", 'jwt_key')
+ALGORITHM = os.getenv("JWT_ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
 # Password Hashing
