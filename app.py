@@ -23,14 +23,14 @@ app = FastAPI(
 )
 
 # Session middleware for OAuth state management
-# Generate a secure secret key: python -c "import secrets; print(secrets.token_hex(32))"SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "your-secret-key-change-in-production")
+Generate a secure secret key: python -c "import secrets; print(secrets.token_hex(32))"SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "your-secret-key-change-in-production")
 app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET_KEY,
     session_cookie="session",
     max_age=1800,  # 30 minutes
     same_site="lax",  # Required for OAuth redirects
-    https_only=False  # Set to True in production with HTTPS
+    https_only=os.getenv("RAILWAY_ENVIRONMENT") is not None  # True on Railway
 )
 
 app.add_middleware(
@@ -101,4 +101,5 @@ app.include_router(auth.router)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))  # Railway uses $PORT env var
+    uvicorn.run(app, host="0.0.0.0", port=port)
