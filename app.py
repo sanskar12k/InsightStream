@@ -16,10 +16,16 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 print(f"✅ Added to Python path: {project_root}")
 
+# Disable docs in production for security
+docs_url = None if os.getenv("RAILWAY_ENVIRONMENT") else "/docs"
+redoc_url = None if os.getenv("RAILWAY_ENVIRONMENT") else "/redoc"
+
 app = FastAPI(
     title="InsghtStream",
     description="Backend API for E-commerce Scraper",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url=docs_url,  # Disabled in production
+    redoc_url=redoc_url  # Disabled in production
 )
 
 # Session middleware for OAuth state management
