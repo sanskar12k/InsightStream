@@ -28,10 +28,10 @@ asyncio==3.4.3
 # Optional: Redis (if you want to add caching later)
 # redis==5.0.1
 
-# Optional: Web Scraping
+# Web Scraping
+requests==2.31.0
 # selenium==4.15.2
 # beautifulsoup4==4.12.2
-# requests==2.31.0
 
 # Development Tools (optional)
 # pytest==7.4.3
