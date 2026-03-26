@@ -93,13 +93,39 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
             detail=f"This account was created using {user.auth_provider.value} login. Please sign in with {user.auth_provider.value} or set a password first."
         )
 
-    if not verify_password(user_data.password, user.password_hash):
+    # Verify password with error handling for legacy passwords
+    try:
+        is_valid = verify_password(user_data.password, user.password_hash)
+    except Exception as e:
+        print(f"ERROR: Password verification failed for {user_data.email}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"}
         )
+
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
     try:
+        # Check if password needs rehashing (legacy password detected)
+        # If the stored hash doesn't use our current format, rehash it
+        try:
+            from backend.auth.jwt_auth import _pre_hash_password, pwd_context
+            pre_hashed = _pre_hash_password(user_data.password)
+            # If pre-hashed verification fails, this is a legacy password that needs rehashing
+            if not pwd_context.verify(pre_hashed, user.password_hash):
+                print(f"INFO: Rehashing legacy password for {user_data.email}")
+                new_hash = hash_password(user_data.password)
+                DBService.update_user_password(db, user.user_id, new_hash)
+        except Exception:
+            # If anything goes wrong with rehashing, just continue (user is already authenticated)
+            pass
+
         DBService.update_last_login(db, user.user_id)
         # token = create_jwt_token(user.user_id)
         access_token= create_access_token(

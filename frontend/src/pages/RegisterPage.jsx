@@ -246,7 +246,7 @@ const RegisterPage = () => {
           <div className="mt-6">
             <button
               type="button"
-              onClick={() => window.location.href = 'http://localhost:8000/auth/google'}
+              onClick={() => window.location.href = 'https://insightstream-production-cf78.up.railway.app/auth/google'}
               className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">

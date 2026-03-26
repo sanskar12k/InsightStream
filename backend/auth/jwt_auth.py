@@ -71,17 +71,35 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Verify a password against its hash.
-    
+    Verify a password against its hash with backward compatibility.
+
+    Tries both methods:
+    1. New method: Pre-hash with SHA256 before bcrypt
+    2. Old method: Direct bcrypt (for legacy passwords)
+
     Args:
         plain_password: Plain text password
         hashed_password: Bcrypt hash from hash_password()
-    
+
     Returns:
         True if password matches, False otherwise
     """
-    pre_hashed = _pre_hash_password(plain_password)
-    return pwd_context.verify(pre_hashed, hashed_password)
+    # First try the new method (pre-hashed)
+    try:
+        pre_hashed = _pre_hash_password(plain_password)
+        if pwd_context.verify(pre_hashed, hashed_password):
+            return True
+    except (ValueError, Exception):
+        # Pre-hashed verification failed or errored, try old method
+        pass
+
+    # Fallback to old method (direct bcrypt) for legacy passwords
+    # Truncate to 72 bytes if needed (bcrypt limit)
+    try:
+        password_bytes = plain_password.encode('utf-8')[:72]
+        return pwd_context.verify(password_bytes.decode('utf-8'), hashed_password)
+    except (ValueError, Exception):
+        return False
 
 # ==================== JWT TOKEN FUNCTIONS ====================
 
