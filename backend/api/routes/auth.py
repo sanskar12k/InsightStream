@@ -2,12 +2,12 @@
 Google OAuth 2.0 Authentication Routes
 """
 import os
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from authlib.integrations.starlette_client import OAuth
-from starlette.requests import Request
 from dotenv import load_dotenv
+from urllib.parse import urlencode
 
 from backend.database.database import get_db
 from backend.services.db_services import DatabaseService as DBService
@@ -22,34 +22,38 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# OAuth configuration
-oauth = OAuth()
-
-oauth.register(
-    name='google',
-    client_id=os.getenv('GOOGLE_CLIENT_ID'),
-    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={
-        'scope': 'openid email profile'
-    }
-)
+# Google OAuth configuration
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI')
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
 @router.get("/google")
-async def google_login(request: Request):
+async def google_login():
     """
     Initiate Google OAuth login flow.
 
     Redirects user to Google's OAuth consent screen.
     """
-    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI')
+    # Build the Google OAuth URL manually to avoid session-based state
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "online",
+        "prompt": "select_account"
+    }
 
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+    google_auth_url = f"{GOOGLE_AUTH_URL}?{urlencode(params)}"
+    return RedirectResponse(url=google_auth_url)
 
 
 @router.get("/google/callback")
-async def google_callback(request: Request, db: Session = Depends(get_db)):
+async def google_callback(code: str = None, db: Session = Depends(get_db)):
     """
     Handle Google OAuth callback.
 
@@ -61,25 +65,55 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     5. Returns JWT token
 
     Returns:
-        TokenResponse with JWT token and user info
+        Redirects to frontend with JWT token and user info
     """
     try:
-        # Exchange authorization code for access token
-        token = await oauth.google.authorize_access_token(request)
-
-        # Get user info from Google
-        user_info = token.get('userinfo')
-
-        if not user_info:
+        if not code:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to get user information from Google"
+                detail="Authorization code not provided"
             )
 
+        # Exchange authorization code for access token
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                GOOGLE_TOKEN_URL,
+                data={
+                    "code": code,
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "redirect_uri": GOOGLE_REDIRECT_URI,
+                    "grant_type": "authorization_code"
+                }
+            )
+
+            if token_response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to exchange authorization code: {token_response.text}"
+                )
+
+            token_data = token_response.json()
+            google_access_token = token_data.get("access_token")
+
+            # Fetch user info from Google
+            userinfo_response = await client.get(
+                GOOGLE_USERINFO_URL,
+                headers={"Authorization": f"Bearer {google_access_token}"}
+            )
+
+            if userinfo_response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to get user information from Google"
+                )
+
+            user_info = userinfo_response.json()
+
         # Extract user data
-        google_id = user_info.get('sub')  # Google's unique user ID
+        google_id = user_info.get('id')  # Google's unique user ID
         email = user_info.get('email')
-        name = user_info.get('name') or email.split('@')[0]  # Use email prefix if name not available
+        name = user_info.get('name') or email.split('@')[0]
 
         if not google_id or not email:
             raise HTTPException(
@@ -109,29 +143,18 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             "last_login": user.last_login.isoformat() if user.last_login else None
         }
 
-        # For web app: Redirect to frontend with token
+        # Redirect to frontend with token
         import urllib.parse
+        import json
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
-        user_json = urllib.parse.quote(str(user_data).replace("'", '"'))
+        user_json = urllib.parse.quote(json.dumps(user_data))
 
         return RedirectResponse(
             url=f"{frontend_url}/auth/callback?token={access_token}&user={user_json}"
         )
 
-        # For API response (if you need JSON instead of redirect):
-        # return TokenResponse(
-        #     access_token=access_token,
-        #     token_type="bearer",
-        #     expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        #     user=UserResponse(
-        #         user_id=user.user_id,
-        #         name=user.name,
-        #         email=user.email,
-        #         created_at=user.created_at,
-        #         last_login=user.last_login
-        #     )
-        # )
-
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"OAuth callback error: {str(e)}")
         import traceback
