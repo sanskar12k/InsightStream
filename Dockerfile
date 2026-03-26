@@ -17,5 +17,5 @@ COPY . .
 
 # 6. Start your FastAPI server
 # Railway automatically assigns a PORT environment variable, so we use it here.
-# NOTE: Change "main:app" if your FastAPI instance is named differently or in a different file!
-CMD uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}
+# Use shell form to allow environment variable expansion
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
