@@ -104,6 +104,10 @@ def apply_data_cleaning(df: pd.DataFrame) -> pd.DataFrame:
         "Current Price": "current_price"
     })
 
+    # Ensure review_count is numeric and fill NaN with 0
+    if 'review_count' in df.columns:
+        df['review_count'] = pd.to_numeric(df['review_count'], errors='coerce').fillna(0)
+
     return df
 
 def apply_advanced_cleaning(df: pd.DataFrame) -> pd.DataFrame:
@@ -140,6 +144,11 @@ def getParamsForRanking(df: pd.DataFrame) -> tuple:
     """
     m = round(df['Rating'].mean(), 2)  # Global average rating
     C = df['review_count'].quantile(0.50)  # Median review count (50th percentile)
+
+    # Set minimum C to avoid division by zero
+    if C == 0 or pd.isna(C):
+        C = 1.0  # Minimum confidence threshold
+        print(f"Warning: C was 0 or NaN, setting to minimum value of 1.0")
 
     print(f"m (Global Avg rating) = {m}, C (50th percentile of Review Count) = {C}")
     return m, C
@@ -231,7 +240,7 @@ def get_insights_of_brand(df: pd.DataFrame) -> pd.DataFrame:
     brand_agg['brand_rating'] = (
         (brand_agg['avg_review_count'] / (brand_agg['avg_review_count'] + C)) * brand_agg['avg_rating'] +
         (C / (brand_agg['avg_review_count'] + C)) * m
-    ).round(2)
+    ).round(2).fillna(m)
 
     # Assign confidence levels
     conditions = [
@@ -245,7 +254,7 @@ def get_insights_of_brand(df: pd.DataFrame) -> pd.DataFrame:
     # Calculate trust score (0-100%)
     brand_agg['trust_score'] = (
         (brand_agg['avg_review_count'] / (C + brand_agg['avg_review_count'])) * 100
-    ).round(2)
+    ).round(2).fillna(0)
 
     # Sort by brand_rating, trust_score, confidence_level
     brand_agg = brand_agg.sort_values(
@@ -254,7 +263,8 @@ def get_insights_of_brand(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Add brand rank using dense ranking
-    brand_agg['brand_rank'] = brand_agg['brand_rating'].rank(method='dense', ascending=False).astype(int)
+    # Fill NaN values before converting to int to prevent conversion errors
+    brand_agg['brand_rank'] = brand_agg['brand_rating'].rank(method='dense', ascending=False).fillna(999).astype(int)
 
     # Reset index to make Brand a column
     brand_agg = brand_agg.reset_index()
