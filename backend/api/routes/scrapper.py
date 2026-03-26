@@ -133,7 +133,7 @@ def generate_insights(
     db = SessionLocal()
     try:
         from backend.storage.r2_storage import get_storage
-        import data_pipeline.data_engg as generate_insights_module
+        import data_pipeline.data_engg_v2 as generate_insights_module
         import data_pipeline.review_analyze_v2 as review_analyzer
 
         print(f"Generating insights for search_id: {search_id}")

@@ -1,2 +1,8 @@
 [phases.setup]
-aptPkgs = ["chromium", "chromium-driver", "libnss3", "libfontconfig1"]
+aptPkgs = []  # No system packages needed - Playwright bundles browsers
+
+[phases.install]
+cmds = [
+  "pip install -r requirements.txt",
+  "playwright install --with-deps chromium"
+]

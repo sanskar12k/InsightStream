@@ -26,7 +26,7 @@ class BaseScraper(ABC):
     """Base class for all scrapers"""
     
     def __init__(self, proxy_manager: Optional[ProxyManager] = None,  # type: ignore
-                 captcha_solver: Optional[CaptchaSolver] = None, max_detail_workers=10): # type: ignore
+                 captcha_solver: Optional[CaptchaSolver] = None, max_detail_workers=7): # type: ignore
         self.session = requests.Session()
         self.config = ScraperConfig()
         self.proxy_manager = proxy_manager

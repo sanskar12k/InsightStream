@@ -4,15 +4,11 @@ import time
 from Base_Scrapper import BaseScraper
 from typing import List, Optional
 
-from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 from urllib.parse import quote_plus
 
 import Products
-import Selenium_Driver
+from Playwright_Driver import PlaywrightDriver as Selenium_Driver
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,17 +37,14 @@ class FlipkartScraper(BaseScraper):
                     
                     # Close login popup if appears
                     try:
-                        close_btn = WebDriverWait(driver, 5).until(
-                            EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._2KpZ6l._2doB4z'))
-                        )
-                        close_btn.click()
+                        close_btn = driver.wait_for_selector('button._2KpZ6l._2doB4z', timeout=5)
+                        if close_btn:
+                            close_btn.click()
                     except:
                         pass
-                    
+
                     # Wait for products
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, '[data-id]'))
-                    )
+                    driver.wait_for_selector('[data-id]', timeout=10)
                     
                     # Check for CAPTCHA
                     if "captcha" in driver.page_source.lower() or "verify" in driver.page_source.lower():

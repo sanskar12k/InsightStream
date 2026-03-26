@@ -602,8 +602,7 @@ class R2Storage:
         prefix = f"{search_id}/silver/"
         files = self.list_files(prefix)
 
-        # Find CSV files (could be in a Spark directory with part-00000 files)
-        csv_files = [f for f in files if f.endswith('.csv') and 'part-' in f]
+        csv_files = [f for f in files if f.endswith('_cleaned.csv')]
 
         if not csv_files:
             logger.warning(f"No silver data files found in {prefix}")
@@ -627,7 +626,7 @@ class R2Storage:
         files = self.list_files(prefix)
 
         # Find CSV files
-        csv_files = [f for f in files if f.endswith('.csv') and 'part-' in f]
+        csv_files = [f for f in files if f.endswith('_cleaned.csv')]
 
         if not csv_files:
             logger.warning(f"No brand insight files found in {prefix}")

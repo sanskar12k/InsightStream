@@ -3,14 +3,14 @@ import time
 from scrapping.Base_Scrapper import BaseScraper
 from typing import List, Dict, Optional
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 from urllib.parse import quote_plus
 from scrapping.config import ScraperConfig
 from scrapping.Products import Product
-from scrapping.Selenium_Driver import SeleniumDriver
+from scrapping.Playwright_Driver import PlaywrightDriver as SeleniumDriver
 import concurrent.futures
+from playwright.sync_api import sync_playwright, TimeoutError
+import urllib.parse
+from urllib.parse import quote_plus
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,82 +24,206 @@ class AmazonScraper(BaseScraper):
         self.api_key = api_key
         self.base_url = "https://www.amazon.in"
 
-    def scrape_basic_product_details_helper(self, driver, max_products: int = 80) -> Optional[Dict[str, Optional[str]]]:
+    def clean_amazon_url(self, raw_url: str) -> str:
+        """
+        Cleans and formats Amazon URLs.
+        Handles relative paths and extracts true URLs from sponsored ad redirects.
+        """
+        if not raw_url:
+            return ""
+
+        import urllib.parse
+        
+        try:
+            # 1. Handle Sponsored links: Extract actual product URL from redirect payload
+            if '/sspa/click' in raw_url:
+                parsed_url = urllib.parse.urlparse(raw_url)
+                query_params = urllib.parse.parse_qs(parsed_url.query)
+                if 'url' in query_params:
+                    # Decode the embedded URL (e.g., %2FGranola... -> /Granola...)
+                    raw_url = urllib.parse.unquote(query_params['url'][0])
+            
+            # 2. Convert relative URLs to absolute URLs
+            if raw_url.startswith('/'):
+                return urllib.parse.urljoin(self.base_url, raw_url)
+            
+            return raw_url
+            
+        except Exception as e:
+            logger.debug(f"Error cleaning URL '{raw_url}': {e}")
+            return raw_url  # Fallback to the original URL if parsing fails 
+
+    # def scrape_basic_product_details_helper(self, driver, max_products: int = 80) -> Optional[Dict[str, Optional[str]]]:
+    #     product_data = []
+    #     fields_mapping = {
+    #         'title': ['title', 'name'],
+    #         'price': ['.a-price-whole'],
+    #         'rating': ['rating', 'stars'],
+    #         'review_count': ['#averageCustomerReviews_feature_div #acrCustomerReviewText', '.s-underline-text']
+    #     }
+    #     logger.info("Inside helper basic product details")
+    #     product_elements = driver.find_elements(By.CSS_SELECTOR, '[data-component-type="s-search-result"]')
+    #     length = min(max_products, len(product_elements))
+    #     for elem in product_elements[:length]:
+    #         try:
+    #         # logger.info(f"{elem.text}")
+    #             title_elem = elem.find_element(By.CSS_SELECTOR, 'h2 span')
+    #             price_elem = elem.find_element(By.CSS_SELECTOR, fields_mapping['price'][0])
+    #             title = self._extract_text(title_elem)
+    #             cur_price = self._parse_price(self._extract_text(price_elem))
+    #             rating = None
+    #             review_count = 0
+    #             url = "" 
+
+    #             try:
+    #                 # rating_elem = elem.find_element(By.CSS_SELECTOR, '[data-cy="reviews-block"] .a-size-small span')
+    #                 rating_elem = elem.find_element(By.CSS_SELECTOR, '.a-size-small span')
+    #                 rating = self._parse_rating(self._extract_text(rating_elem))
+    #             except:
+    #                 pass
+                
+    #             try:
+    #                 link_elem = elem.find_element(By.CSS_SELECTOR, '.a-link-normal')
+    #                 url = self.clean_amazon_url(link_elem.get_attribute('href'))
+    #             except:
+    #                 pass
+    #             if cur_price and title:
+    #                 product_data.append({
+    #                     'title': title,
+    #                     'cur_price': cur_price,
+    #                     'rating': rating,
+    #                     'review_count': review_count,
+    #                     'url': url
+    #                 })
+    #         except Exception as e:
+    #             logger.debug(f"Error parsing product: {e}")
+    #             continue
+    #     try:
+    #         next_page_elem = driver.find_elements(By.CSS_SELECTOR, '.s-pagination-next')[0]
+
+    #         if 'a-disabled' in next_page_elem.get_attribute('class'):
+    #             logger.info("No next page available")
+    #             return product_data
+
+    #         next_page_url =  self.clean_amazon_url(next_page_elem.get_attribute('href'))
+
+    #         if next_page_url:
+    #             logger.info("Next page URL found. Navigating..." + next_page_url)
+
+    #             driver.get(next_page_url)
+            
+    #         else:
+    #             logger.info("Navigating to next page by clicking button"+next_page_url)
+    #             driver.execute_script("arguments[0].click();", next_page_url)
+    #         time.sleep(1)
+    #         driver.wait_for_selector('[data-component-type="s-search-result"]', timeout=10)
+    #         product_data.extend(self.scrape_basic_product_details_helper(driver))
+    #     except:            
+    #         logger.info("No next page found")
+    #         pass
+    #     return product_data
+    
+    def scrape_basic_product_details_helper(self, driver, max_products: int = 80) -> List[Dict[str, Optional[str]]]:
         product_data = []
         fields_mapping = {
-            'title': ['title', 'name'],
-            'price': ['.a-price-whole'],
-            'rating': ['rating', 'stars'],
-            'review_count': ['#averageCustomerReviews_feature_div #acrCustomerReviewText', '.s-underline-text']
+            'price': ['.a-price-whole']
         }
-        logger.info("Inside helper basic product details")
-        product_elements = driver.find_elements(By.CSS_SELECTOR, '[data-component-type="s-search-result"]')
-        length = min(max_products, len(product_elements))
-        for elem in product_elements[:length]:
-            try:
-            # logger.info(f"{elem.text}")
-                title_elem = elem.find_element(By.CSS_SELECTOR, 'h2 span')
-                price_elem = elem.find_element(By.CSS_SELECTOR, fields_mapping['price'][0])
-                title = self._extract_text(title_elem)
-                cur_price = self._parse_price(self._extract_text(price_elem))
-                rating = None
-                review_count = 0
-                url = "" 
-
-                try:
-                    # rating_elem = elem.find_element(By.CSS_SELECTOR, '[data-cy="reviews-block"] .a-size-small span')
-                    rating_elem = elem.find_element(By.CSS_SELECTOR, '.a-size-small span')
-                    rating = self._parse_rating(self._extract_text(rating_elem))
-                except:
-                    pass
-                
-                try:
-                    link_elem = elem.find_element(By.CSS_SELECTOR, '.a-link-normal')
-                    url = link_elem.get_attribute('href')
-                except:
-                    pass
-                if cur_price and title:
-                    product_data.append({
-                        'title': title,
-                        'cur_price': cur_price,
-                        'rating': rating,
-                        'review_count': review_count,
-                        'url': url
-                    })
-            except Exception as e:
-                logger.debug(f"Error parsing product: {e}")
-                continue
-        try:
-            next_page_elem = driver.find_elements(By.CSS_SELECTOR, '.s-pagination-next')[0]
-
-            if 'a-disabled' in next_page_elem.get_attribute('class'):
-                logger.info("No next page available")
-                return product_data
-
-            next_page_url = next_page_elem.get_attribute('href')
-
-            if next_page_url:
-                logger.info("Next page URL found. Navigating..." + next_page_url)
-
-                driver.get(next_page_url)
+        
+        # Iterative approach instead of recursion
+        while len(product_data) < max_products:
+            logger.info(f"Scraping basic details. Current count: {len(product_data)}/{max_products}")
             
-            else:
-                logger.info("Navigating to next page by clicking button"+next_page_url)
-                driver.execute_script("arguments[0].click();", next_page_url)
-            time.sleep(1)
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component-type="s-search-result"]'))
-            )
-            product_data.extend(self.scrape_basic_product_details_helper(driver))
-        except:            
-            logger.info("No next page found")
-            pass
-        return product_data
+            try:
+                # Wait for products to load on the current page
+                driver.wait_for_selector('[data-component-type="s-search-result"]', timeout=10)
+            except Exception as e:
+                logger.warning(f"Timeout waiting for search results: {e}")
+                break
+
+            product_elements = driver.find_elements(By.CSS_SELECTOR, '[data-component-type="s-search-result"]')
+            
+            # Calculate exactly how many more products we need to hit our max
+            remaining_needed = max_products - len(product_data)
+            
+            # Slice the elements list so we don't process more than we need
+            elements_to_process = product_elements[:remaining_needed]
+            
+            for elem in elements_to_process:
+                try:
+                    # Using the stricter title selector from our previous fix
+                    title_elem = elem.find_element(By.CSS_SELECTOR, 'h2 span')
+                    price_elem = elem.find_element(By.CSS_SELECTOR, fields_mapping['price'][0])
+                    
+                    title = self._extract_text(title_elem)
+                    cur_price = self._parse_price(self._extract_text(price_elem))
+                    rating = None
+                    review_count = 0
+                    url = "" 
+
+                    try:
+                        rating_elem = elem.find_element(By.CSS_SELECTOR, '.a-size-small span')
+                        rating = self._parse_rating(self._extract_text(rating_elem))
+                    except:
+                        pass
+                    
+                    try:
+                        link_elem = elem.find_element(By.CSS_SELECTOR, '.a-link-normal')
+                        url = self.clean_amazon_url(link_elem.get_attribute('href'))
+                    except:
+                        pass
+                    if cur_price and title:
+                        product_data.append({
+                            'title': title,
+                            'cur_price': cur_price,
+                            'rating': rating,
+                            'review_count': review_count,
+                            'url': url
+                        })
+                except Exception as e:
+                    logger.debug(f"Error parsing product element: {e}")
+                    continue
+            
+            # Check if we hit our quota after processing the page
+            if len(product_data) >= max_products:
+                logger.info(f"Target of {max_products} products reached.")
+                break
+            logger.info(f" product_data len: {len(product_data)}")
+            # --- Pagination Logic ---
+            try:
+                next_page_elements = driver.find_elements(By.CSS_SELECTOR, '.s-pagination-next')
+                
+                if not next_page_elements:
+                    logger.info("No next page button found in DOM.")
+                    break
+                    
+                next_page_elem = next_page_elements[0]
+
+                if 'a-disabled' in next_page_elem.get_attribute('class'):
+                    logger.info("Next page button is disabled (last page reached).")
+                    break
+
+                next_page_url = self.clean_amazon_url(next_page_elem.get_attribute('href')) 
+                # next_page_elem.get_attribute('href')
+
+                if next_page_url:
+                    logger.info(f"Navigating to next page: {next_page_url}")
+                    driver.get(next_page_url)
+                else:
+                    logger.info("Navigating to next page by clicking button.")
+                    driver.execute_script("arguments[0].click();", next_page_elem)
+                
+                # Small pause to ensure the browser has time to trigger the navigation event
+                time.sleep(2) 
+                
+            except Exception as e:            
+                logger.info(f"Failed to navigate to next page or no more pages: {e}")
+                break
+                
+        # Return exactly the requested amount
+        return product_data[:max_products]
 
     def scrape_basic_product_details(self, driver, search_url: str, attempt:int = 0, max_products: int = 80) -> Dict[str, Optional[str]]:
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component-type="s-search-result"]'))
-        )   
+        driver.wait_for_selector('[data-component-type="s-search-result"]', timeout=20)
         product_data = []
         # Check for CAPTCHA
         if "captcha" in driver.page_source.lower():
@@ -122,9 +246,7 @@ class AmazonScraper(BaseScraper):
                 #     logger.info(f"Scraping details for product URL: {product['url']}")
                 driver.get(product['url'])
                 try:
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.ID, 'customer-reviews_feature_div'))
-                    )
+                    driver.wait_for_selector('#customer-reviews_feature_div', timeout=10)
                     review_summary = driver.find_element(By.CSS_SELECTOR, '[data-testid="overall-summary"]')
                     product['review_summary'] = self._extract_text(review_summary)
                 except Exception as e:
@@ -680,8 +802,9 @@ class AmazonScraper(BaseScraper):
         products = []
         product_data = []
         detailed_prod = []
+        logger.info("Starting scrapping")
         search_url = f"{self.base_url}/s?k={quote_plus(product_name)}"
-        
+
         if category:
             search_url += f"&i={quote_plus(category)}"
         
@@ -741,7 +864,7 @@ class AmazonScraper(BaseScraper):
                     logger.info(f"Successfully scraped {len(products)} products from Amazon")
                     return products
                     
-            except TimeoutException:
+            except TimeoutError:
                 logger.warning(f"Timeout on attempt {attempt + 1}")
                 if proxy_str and self.proxy_manager:
                     self.proxy_manager.mark_failed(proxy_str)
