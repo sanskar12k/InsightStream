@@ -219,7 +219,7 @@ def get_insights_of_brand(df: pd.DataFrame) -> pd.DataFrame:
     # Filter out unknown brands and group
     brand_agg = df[df['Brand'] != 'Unknown'].groupby('Brand').agg({
         'Brand': 'count',  # Product count
-        'review_count': 'mean',
+        'review_count': 'sum',
         'weighted_rating': 'mean'
     }).rename(columns={
         'Brand': 'product_count',
