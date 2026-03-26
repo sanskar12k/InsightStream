@@ -36,8 +36,8 @@ app.add_middleware(
     secret_key=SESSION_SECRET_KEY,
     session_cookie="session",
     max_age=1800,  # 30 minutes
-    same_site="lax",  # Required for OAuth redirects
-    https_only=os.getenv("RAILWAY_ENVIRONMENT") is not None  # True on Railway
+    same_site="none",  # Required for cross-domain OAuth (frontend on vercel, backend on railway)
+    https_only=True  # Always required with same_site="none"
 )
 
 app.add_middleware(
