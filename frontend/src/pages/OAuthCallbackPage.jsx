@@ -1,54 +1,44 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import toast from 'react-hot-toast'
 
 const OAuthCallbackPage = () => {
   const navigate = useNavigate()
-  const { setUser, setToken } = useAuth()
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
       try {
-        // The backend should send the full response with token
-        // We're on the callback URL now after Google redirects
-        const currentUrl = window.location.href
-
-        // Check if we're coming from the backend callback
-        // The backend returns JSON, so we need to extract it
-
-        // Option 1: If backend redirects with token in URL params
+        // Extract token and user data from URL params
         const urlParams = new URLSearchParams(window.location.search)
         const token = urlParams.get('token')
+        const userDataParam = urlParams.get('user')
 
-        if (token) {
-          // Parse user data if included
-          const userDataParam = urlParams.get('user')
-          const userData = userDataParam ? JSON.parse(decodeURIComponent(userDataParam)) : null
+        if (token && userDataParam) {
+          // Parse user data
+          const userData = JSON.parse(decodeURIComponent(userDataParam))
 
-          // Store token and user
+          // Store token and user in localStorage
           localStorage.setItem('token', token)
-          if (userData) {
-            localStorage.setItem('user', JSON.stringify(userData))
-            setUser(userData)
-          }
-          setToken(token)
+          localStorage.setItem('user', JSON.stringify(userData))
 
-          // Redirect to dashboard
-          navigate('/dashboard', { replace: true })
+          toast.success('Successfully signed in with Google!')
+
+          // Force page reload to trigger AuthContext to load user from localStorage
+          window.location.href = '/dashboard'
         } else {
-          // Option 2: Token is in the response body (API returns JSON)
-          // This happens when backend endpoint returns JSON directly
-          console.error('No token found in URL. Check backend /auth/google/callback response.')
+          console.error('No token or user data found in URL')
+          toast.error('Google sign-in failed. Please try again.')
           navigate('/login', { replace: true })
         }
       } catch (error) {
         console.error('OAuth callback error:', error)
+        toast.error('Failed to complete sign-in. Please try again.')
         navigate('/login', { replace: true })
       }
     }
 
     handleOAuthCallback()
-  }, [navigate, setUser, setToken])
+  }, [navigate])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
