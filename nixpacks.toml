@@ -1,0 +1,5 @@
+[phases.setup]
+aptPkgs = ["chromium", "chromium-driver"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
