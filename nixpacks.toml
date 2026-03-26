@@ -1,5 +1,5 @@
 [phases.setup]
-aptPkgs = ["chromium", "chromium-driver", "libnss3", "libgconf-2-4", "libfontconfig1"]
+aptPkgs = ["chromium", "chromium-driver", "libnss3", "libfontconfig1"]
 
 [phases.install]
 cmds = ["pip install -r requirements.txt"]
