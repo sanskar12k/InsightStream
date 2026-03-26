@@ -48,7 +48,6 @@ export const AuthProvider = ({ children }) => {
     try {
       // Clear all cached data before login to prevent data leakage
       queryClient.clear()
-
       const response = await authAPI.login({ email, password })
       const { access_token, user: userData } = response.data
 
