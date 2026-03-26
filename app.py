@@ -12,7 +12,7 @@ from backend.config import setting
 # Load environment variables from backend/.env
 load_dotenv(dotenv_path=Path(__file__).parent / "backend" / ".env") 
 
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 print(f"✅ Added to Python path: {project_root}")
 
