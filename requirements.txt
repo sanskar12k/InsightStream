@@ -22,8 +22,7 @@ python-dotenv==1.0.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
-# Async Support
-asyncio==3.4.3
+# Async Support (asyncio is built-in to Python, no need to install)
 
 # Optional: Redis (if you want to add caching later)
 # redis==5.0.1
@@ -31,6 +30,7 @@ asyncio==3.4.3
 # Web Scraping
 requests==2.31.0
 selenium==4.15.2
+selenium-stealth==1.0.6
 beautifulsoup4==4.12.2
 
 # Development Tools (optional)
