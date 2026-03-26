@@ -14,7 +14,8 @@ class Settings(BaseSettings):
             "http://localhost:3000",
             "http://localhost:8080",
             "http://localhost:3001",
-            "https://insightstream-ivory.vercel.app"
+            "https://insight-stream-eight.vercel.app",
+            "http://insight-stream.sanskargupta.co.in/"
         ]
 
         # Add Railway backend URL (for testing from Railway docs UI)
