@@ -253,9 +253,25 @@ async def scrape_products(
     
     try:
         search = DBService.create_search(db, int(current_user_id), ",".join(request.platform), request.product_name, request.category, request.deep_details, request.max_products, request.include_reviews, request.auto_generate_insights)
-        # print("Search record created with search_id:", search.search_id)
-        background_tasks.add_task(start_scrapping, search_id=search.search_id, platform=request.platform, product_name=request.product_name, category=request.category, deep_details=request.deep_details, max_products=request.max_products, include_reviews=request.include_reviews, auto_generate_insights=request.auto_generate_insights)
-        # start_scrapping(search_id=search.search_id, platform=request.platform, product_name=request.product_name, category=request.category, deep_details=request.deep_details, max_products=request.max_products, include_reviews=request.include_reviews)
+
+        # Wrap scraping to run in thread (fixes Playwright asyncio loop conflict)
+        async def run_scrapping_in_thread():
+            """Run blocking scraper outside asyncio loop"""
+            import asyncio
+            await asyncio.to_thread(
+                start_scrapping,
+                search_id=search.search_id,
+                platform=request.platform,
+                product_name=request.product_name,
+                category=request.category,
+                deep_details=request.deep_details,
+                max_products=request.max_products,
+                include_reviews=request.include_reviews,
+                auto_generate_insights=request.auto_generate_insights
+            )
+
+        background_tasks.add_task(run_scrapping_in_thread)
+
         return ScrapperResponse(
             status="success",
             message="Scrapping initiated successfully",
