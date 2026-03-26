@@ -1,8 +1,0 @@
-[phases.setup]
-aptPkgs = []  # No system packages needed - Playwright bundles browsers
-
-[phases.install]
-cmds = [
-  "pip install -r requirements.txt",
-  "playwright install --with-deps chromium"
-]
