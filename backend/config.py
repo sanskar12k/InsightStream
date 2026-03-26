@@ -13,7 +13,8 @@ class Settings(BaseSettings):
         origins = [
             "http://localhost:3000",
             "http://localhost:8080",
-            "http://localhost:3001"
+            "http://localhost:3001",
+            "https://insightstream-ivory.vercel.app"
         ]
 
         # Add Railway backend URL (for testing from Railway docs UI)
