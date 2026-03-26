@@ -2,7 +2,6 @@ import logging
 import time
 from scrapping.Base_Scrapper import BaseScraper
 from typing import List, Dict, Optional
-from selenium.webdriver.common.by import By
 from urllib.parse import quote_plus
 from scrapping.config import ScraperConfig
 from scrapping.Products import Product
@@ -62,7 +61,7 @@ class AmazonScraper(BaseScraper):
     #         'review_count': ['#averageCustomerReviews_feature_div #acrCustomerReviewText', '.s-underline-text']
     #     }
     #     logger.info("Inside helper basic product details")
-    #     product_elements = driver.find_elements(By.CSS_SELECTOR, '[data-component-type="s-search-result"]')
+    #     product_elements = driver.query_selector_all(By.CSS_SELECTOR, '[data-component-type="s-search-result"]')
     #     length = min(max_products, len(product_elements))
     #     for elem in product_elements[:length]:
     #         try:
@@ -99,7 +98,7 @@ class AmazonScraper(BaseScraper):
     #             logger.debug(f"Error parsing product: {e}")
     #             continue
     #     try:
-    #         next_page_elem = driver.find_elements(By.CSS_SELECTOR, '.s-pagination-next')[0]
+    #         next_page_elem = driver.query_selector_all(By.CSS_SELECTOR, '.s-pagination-next')[0]
 
     #         if 'a-disabled' in next_page_elem.get_attribute('class'):
     #             logger.info("No next page available")
@@ -140,7 +139,7 @@ class AmazonScraper(BaseScraper):
                 logger.warning(f"Timeout waiting for search results: {e}")
                 break
 
-            product_elements = driver.find_elements(By.CSS_SELECTOR, '[data-component-type="s-search-result"]')
+            product_elements = driver.query_selector_all( '[data-component-type="s-search-result"]')
             
             # Calculate exactly how many more products we need to hit our max
             remaining_needed = max_products - len(product_data)
@@ -151,8 +150,8 @@ class AmazonScraper(BaseScraper):
             for elem in elements_to_process:
                 try:
                     # Using the stricter title selector from our previous fix
-                    title_elem = elem.find_element(By.CSS_SELECTOR, 'h2 span')
-                    price_elem = elem.find_element(By.CSS_SELECTOR, fields_mapping['price'][0])
+                    title_elem = elem.query_selector( 'h2 span')
+                    price_elem = elem.query_selector( fields_mapping['price'][0])
                     
                     title = self._extract_text(title_elem)
                     cur_price = self._parse_price(self._extract_text(price_elem))
@@ -161,13 +160,13 @@ class AmazonScraper(BaseScraper):
                     url = "" 
 
                     try:
-                        rating_elem = elem.find_element(By.CSS_SELECTOR, '.a-size-small span')
+                        rating_elem = elem.query_selector( '.a-size-small span')
                         rating = self._parse_rating(self._extract_text(rating_elem))
                     except:
                         pass
                     
                     try:
-                        link_elem = elem.find_element(By.CSS_SELECTOR, '.a-link-normal')
+                        link_elem = elem.query_selector('.a-link-normal')
                         url = self.clean_amazon_url(link_elem.get_attribute('href'))
                     except:
                         pass
@@ -190,7 +189,7 @@ class AmazonScraper(BaseScraper):
             logger.info(f" product_data len: {len(product_data)}")
             # --- Pagination Logic ---
             try:
-                next_page_elements = driver.find_elements(By.CSS_SELECTOR, '.s-pagination-next')
+                next_page_elements = driver.query_selector_all('.s-pagination-next')
                 
                 if not next_page_elements:
                     logger.info("No next page button found in DOM.")
@@ -247,7 +246,7 @@ class AmazonScraper(BaseScraper):
                 driver.get(product['url'])
                 try:
                     driver.wait_for_selector('#customer-reviews_feature_div', timeout=10)
-                    review_summary = driver.find_element(By.CSS_SELECTOR, '[data-testid="overall-summary"]')
+                    review_summary = driver.query_selector('[data-testid="overall-summary"]')
                     product['review_summary'] = self._extract_text(review_summary)
                 except Exception as e:
                     logger.error(f"Error loading product page or extracting review summary: {e}")
@@ -256,9 +255,9 @@ class AmazonScraper(BaseScraper):
                     if reviews:
                         # with self.lock:
                         #     logger.info("Extracting reviews list")
-                        reviews_list = driver.find_elements(By.CSS_SELECTOR, '[data-hook="review"]')
+                        reviews_list = driver.query_selector_all('[data-hook="review"]')
                         for review in reviews_list:
-                            review_text = ' '.join(self._extract_text(review.find_element(By.CSS_SELECTOR, '[data-hook="review-collapsed"]')).split())
+                            review_text = ' '.join(self._extract_text(review.query_selector('[data-hook="review-collapsed"]')).split())
                             if 'reviews' not in product:
                                 product['reviews'] = []
                             product['reviews'].append(review_text)
@@ -335,7 +334,7 @@ class AmazonScraper(BaseScraper):
 
             # === REVIEW COUNT ===
             try:
-                review_elem = driver.find_element(By.CSS_SELECTOR, '#averageCustomerReviews_feature_div #acrCustomerReviewText')
+                review_elem = driver.query_selector('#averageCustomerReviews_feature_div #acrCustomerReviewText')
                 if review_elem:
                     details['review_count'] = str(self._parse_review_count(review_elem.text))
             except Exception as e:
@@ -343,8 +342,8 @@ class AmazonScraper(BaseScraper):
             
             # === MRP ===
             try:
-                id_elem = driver.find_element(By.CSS_SELECTOR, "#apex_desktop")
-                mrp_elem = id_elem.find_element(By.CSS_SELECTOR, ".a-spacing-small.aok-align-center .aok-relative .a-text-price span[aria-hidden='true']")
+                id_elem = driver.query_selector("#apex_desktop")
+                mrp_elem = id_elem.query_selector(".a-spacing-small.aok-align-center .aok-relative .a-text-price span[aria-hidden='true']")
                 if mrp_elem:
                     details['mrp'] = str(self._parse_price(mrp_elem.get_attribute("textContent").strip()))
                     # logger.info(f"Found mrp: {details['mrp']}")
@@ -383,7 +382,7 @@ class AmazonScraper(BaseScraper):
         
         for selector in ul_selectors:
             try:
-                ul_element = driver.find_element(By.CSS_SELECTOR, selector)
+                ul_element = driver.query_selector(selector)
                 if ul_element:
                     # logger.info(f"✓ Found Detail Bullets UL with selector: {selector}")
                     break
@@ -395,15 +394,15 @@ class AmazonScraper(BaseScraper):
             return
         
         # Get all <li> items
-        li_items = ul_element.find_elements(By.TAG_NAME, 'li')
+        li_items = ul_element.query_selector_all('li')
         
         for idx, li in enumerate(li_items, 1):
             try:
                 # Get the main span with class "a-list-item"
-                list_item_span = li.find_element(By.CSS_SELECTOR, 'span.a-list-item')
+                list_item_span = li.query_selector('span.a-list-item')
                 
                 # Get all child spans
-                spans = list_item_span.find_elements(By.TAG_NAME, 'span')
+                spans = list_item_span.query_selector_all('span')
                 
                 if len(spans) < 1:
                     logger.debug(f"Item {idx}: Skipping - no spans found")
@@ -418,7 +417,7 @@ class AmazonScraper(BaseScraper):
                 
                 try:
                     # Look for bold span specifically
-                    bold_span = list_item_span.find_element(By.CSS_SELECTOR, 'span.a-text-bold')
+                    bold_span = list_item_span.query_selector('span.a-text-bold')
                     label = self._extract_text(bold_span).strip()
                     
                     # Get value by removing label from full text
@@ -577,7 +576,7 @@ class AmazonScraper(BaseScraper):
         
         for selector in brand_selectors:
             try:
-                brand_element = driver.find_element(By.CSS_SELECTOR, selector)
+                brand_element = driver.query_selector(selector)
                 if brand_element:
                     brand_name = self._extract_text(brand_element).strip()
                     
@@ -592,8 +591,7 @@ class AmazonScraper(BaseScraper):
         
         # Fallback: Try to find by role="heading" and aria-level="2"
         try:
-            heading_element = driver.find_element(
-                By.CSS_SELECTOR,
+            heading_element = driver.query_selector(
                 'div[class*="brand-snapshot"] div[role="heading"][aria-level="2"] span.a-text-bold'
             )
             if heading_element:
@@ -607,10 +605,10 @@ class AmazonScraper(BaseScraper):
         # Another fallback: Look for the specific structure from your screenshot
         try:
             # Structure: div.brand-snapshot-flex-row > div.a-section > p > span
-            container = driver.find_element(By.CSS_SELECTOR, 'div.brand-snapshot-flex-row')
+            container = driver.query_selector('div.brand-snapshot-flex-row')
             if container:
                 # Find all bold spans within
-                bold_spans = container.find_elements(By.CSS_SELECTOR, 'span.a-text-bold')
+                bold_spans = container.query_selector_all('span.a-text-bold')
                 for span in bold_spans:
                     text = self._extract_text(span).strip()
                     # The brand name is usually the first substantial bold text
@@ -634,8 +632,7 @@ class AmazonScraper(BaseScraper):
         
         # First, expand the accordion if it's collapsed
         try:
-            accordion_button = driver.find_element(
-                By.CSS_SELECTOR,
+            accordion_button = driver.query_selector(
                 '#item_details[data-expanded="false"]'
             )
             
@@ -661,21 +658,21 @@ class AmazonScraper(BaseScraper):
         
         for table_selector in table_selectors:
             try:
-                table = driver.find_element(By.CSS_SELECTOR, table_selector)
+                table = driver.query_selector(table_selector)
                 if not table:
                     continue
                     
                 # logger.info(f"✓ Found Item Details table with selector: {table_selector}")
                 
                 # Get all rows in the table
-                rows = table.find_elements(By.TAG_NAME, 'tr')
+                rows = table.query_selector_all('tr')
                 # logger.info(f"Processing {len(rows)} rows from Item Details table...")
                 
                 for idx, row in enumerate(rows, 1):
                     try:
                         # Get th (label) and td (value)
-                        th = row.find_element(By.TAG_NAME, 'th')
-                        td = row.find_element(By.TAG_NAME, 'td')
+                        th = row.query_selector('th')
+                        td = row.query_selector( 'td')
                         
                         # Extract text
                         label = self._extract_text(th).lower().strip()
@@ -727,7 +724,7 @@ class AmazonScraper(BaseScraper):
         
         for selector in brand_byline_selectors:
             try:
-                brand_element = driver.find_element(By.CSS_SELECTOR, selector)
+                brand_element = driver.query_selector(selector)
                 if brand_element:
                     brand_text = self._extract_text(brand_element).strip()
                     
@@ -744,7 +741,7 @@ class AmazonScraper(BaseScraper):
         
         # ========================================
         # PRIORITY 3: Brand Snapshot Section
-        # ========================================
+        # ========================================  
         brand_snapshot_selectors = [
             'div.brand-snapshot-flex-row p span.a-size-medium.a-text-bold',
             'div.brand-snapshot-card-content span.a-size-medium.a-text-bold',
@@ -752,10 +749,12 @@ class AmazonScraper(BaseScraper):
         
         for selector in brand_snapshot_selectors:
             try:
-                brand_element = driver.find_element(By.CSS_SELECTOR, selector)
+                # Playwright automatically handles the CSS selector string natively
+                brand_element = driver.query_selector(selector)
+                
                 if brand_element:
                     brand_name = self._extract_text(brand_element).strip()
-                    
+
                     # Filter out non-brand text
                     if brand_name and brand_name.lower() not in ['visit', 'store', 'brand', 'flex', '']:
                         # logger.info(f"✓ Found brand from snapshot: {brand_name}")
@@ -764,12 +763,11 @@ class AmazonScraper(BaseScraper):
             except Exception as e:
                 logger.debug(f"Brand snapshot selector '{selector}' failed: {e}")
                 continue
-        
         # ========================================
         # PRIORITY 4: Product Title (Extract First Word/Brand)
         # ========================================
         try:
-            title_element = driver.find_element(By.CSS_SELECTOR, '#productTitle')
+            title_element = driver.query_selector( '#productTitle')
             if title_element:
                 title_text = self._extract_text(title_element).strip()
                 

@@ -3,7 +3,6 @@ import time
 import requests
 from scrapping.config import ScraperConfig 
 from typing import List, Dict, Optional
-from selenium.webdriver.common.by import By
 from abc import ABC, abstractmethod
 from scrapping.Products import Product 
 import random
@@ -53,7 +52,7 @@ class BaseScraper(ABC):
         """Detect and solve CAPTCHA"""
         try:
             # Check for reCAPTCHA
-            recaptcha_frame = driver.find_elements(By.CSS_SELECTOR, 'iframe[src*="recaptcha"]')
+            recaptcha_frame = driver.find_elements('iframe[src*="recaptcha"]')
             if recaptcha_frame:
                 logger.info("reCAPTCHA detected")
                 # Extract site key
@@ -76,7 +75,7 @@ class BaseScraper(ABC):
                         return True
             
             # Check for hCaptcha
-            hcaptcha_frame = driver.find_elements(By.CSS_SELECTOR, 'iframe[src*="hcaptcha"]')
+            hcaptcha_frame = driver.find_elements('iframe[src*="hcaptcha"]')
             if hcaptcha_frame:
                 logger.info("hCaptcha detected")
                 site_key = driver.execute_script(
