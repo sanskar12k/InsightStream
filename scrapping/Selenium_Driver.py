@@ -1,8 +1,10 @@
 
 import logging
 import random
+import os
 from typing import List, Dict, Optional
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 
 from scrapping.Base_Scrapper import ScraperConfig
 from selenium.webdriver.common.by import By
@@ -47,10 +49,16 @@ class SeleniumDriver:
         """Create Chrome driver with anti-detection"""
         try:
             options = Options()
-            
+
+            # Set Chrome binary location for production environments
+            chrome_bin = os.getenv('CHROME_BIN', '/usr/bin/chromium')
+            if os.path.exists(chrome_bin):
+                options.binary_location = chrome_bin
+                logger.info(f"Using Chrome binary at: {chrome_bin}")
+
             if self.headless:
                 options.add_argument('--headless=new')
-            
+
             # Anti-detection measures
             options.add_argument('--disable-blink-features=AutomationControlled')
             options.add_argument('--disable-dev-shm-usage')
@@ -62,17 +70,24 @@ class SeleniumDriver:
             options.add_argument('--disable-extensions')
             options.add_argument('--disable-infobars')
             options.add_argument(f'user-agent={random.choice(ScraperConfig.USER_AGENTS)}')
-            
+
             # Exclude automation switches
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
             options.add_experimental_option('useAutomationExtension', False)
-            
+
             # Proxy configuration
             if self.proxy:
                 options.add_argument(f'--proxy-server={self.proxy}')
-            
+
+            # Configure ChromeDriver service
+            service = None
+            chromedriver_path = os.getenv('CHROMEDRIVER_PATH', '/usr/bin/chromedriver')
+            if os.path.exists(chromedriver_path):
+                service = Service(executable_path=chromedriver_path)
+                logger.info(f"Using chromedriver at: {chromedriver_path}")
+
             # Create driver
-            driver = webdriver.Chrome(options=options)
+            driver = webdriver.Chrome(service=service, options=options)
             
             # Set timeouts
             driver.set_page_load_timeout(ScraperConfig.PAGE_LOAD_TIMEOUT)
