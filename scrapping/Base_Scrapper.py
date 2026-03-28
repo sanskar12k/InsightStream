@@ -36,7 +36,7 @@ class BaseScraper(ABC):
             import os
             # On Railway or low-CPU environments, use 1 worker to avoid overload
             if os.getenv('RAILWAY_ENVIRONMENT'):
-                max_detail_workers = 3  # Sequential detail scraping on Railway
+                max_detail_workers = 1  # Sequential detail scraping on Railway
                 logger.info("Railway environment detected: Using 1 worker for detail scraping")
             else:
                 max_detail_workers = 7  # Local development can handle more
