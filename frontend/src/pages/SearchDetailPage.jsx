@@ -48,8 +48,19 @@ const SearchDetailPage = () => {
   // Poll for insights generation status
   useEffect(() => {
     if (generatingInsights && search?.status === 'COMPLETED') {
+      const startTime = Date.now()
+      const maxPollDuration = 2.5 * 60 * 1000 // 2.5 minutes in milliseconds
+
       const interval = setInterval(async () => {
         try {
+          // Check if 2.5 minutes have passed
+          if (Date.now() - startTime > maxPollDuration) {
+            clearInterval(interval)
+            setGeneratingInsights(false)
+            toast.error('Insights generation timed out. Please try refreshing the page.')
+            return
+          }
+
           await refetch()
           const updatedSearch = await scraperAPI.getSearchStatus(searchId)
           if (updatedSearch.data.insight_generated) {

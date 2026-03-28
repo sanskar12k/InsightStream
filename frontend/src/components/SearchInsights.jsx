@@ -57,10 +57,12 @@ const SearchInsights = ({ searchId, generatingInsights = false }) => {
       }
     }
 
-    if (searchId) {
+    // Fetch insights when component mounts or when insights generation completes
+    // (generatingInsights changes from true to false)
+    if (searchId && !generatingInsights) {
       fetchInsights()
     }
-  }, [searchId])
+  }, [searchId, generatingInsights])
 
   // Process data for visualizations
   const processedData = () => {
