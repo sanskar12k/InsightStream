@@ -95,11 +95,23 @@ class PlaywrightDriver:
 
     def get(self, url: str):
         """Navigate to URL (Selenium compatibility)"""
-        self.page.goto(url, wait_until='domcontentloaded')
+        import time
+        import random
+
+        # Anti-detection: Random delay before navigation (0.5-2 seconds)
+        time.sleep(random.uniform(0.5, 2.0))
+
+        # Use networkidle for more reliable load detection (waits for network to be idle)
+        try:
+            self.page.goto(url, wait_until='networkidle', timeout=ScraperConfig.PAGE_LOAD_TIMEOUT * 1000)
+        except Exception as e:
+            # Fallback to domcontentloaded if networkidle fails
+            logger.warning(f"networkidle failed, falling back to domcontentloaded: {e}")
+            self.page.goto(url, wait_until='domcontentloaded', timeout=ScraperConfig.PAGE_LOAD_TIMEOUT * 1000)
 
     def goto(self, url: str):
         """Navigate to URL (Playwright native)"""
-        self.page.goto(url, wait_until='domcontentloaded')
+        self.get(url)  # Use the same logic as get()
 
     def find_element(self, by, selector: str):
         """Selenium-compatible element finder"""

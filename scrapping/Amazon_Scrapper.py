@@ -134,7 +134,7 @@ class AmazonScraper(BaseScraper):
             
             try:
                 # Wait for products to load on the current page
-                driver.wait_for_selector('[data-component-type="s-search-result"]', timeout=10)
+                driver.wait_for_selector('[data-component-type="s-search-result"]', timeout=self.config.PAGE_LOAD_TIMEOUT)
             except Exception as e:
                 logger.warning(f"Timeout waiting for search results: {e}")
                 break
@@ -222,7 +222,7 @@ class AmazonScraper(BaseScraper):
         return product_data[:max_products]
 
     def scrape_basic_product_details(self, driver, search_url: str, attempt:int = 0, max_products: int = 80) -> Dict[str, Optional[str]]:
-        driver.wait_for_selector('[data-component-type="s-search-result"]', timeout=20)
+        driver.wait_for_selector('[data-component-type="s-search-result"]', timeout=self.config.PAGE_LOAD_TIMEOUT)
         product_data = []
         # Check for CAPTCHA
         if "captcha" in driver.page_source.lower():
@@ -814,6 +814,15 @@ class AmazonScraper(BaseScraper):
                 with SeleniumDriver(proxy=proxy_str, headless=True) as driver:
                     logger.info(f"Loading Amazon search page (attempt {attempt + 1})")
                     driver.get(search_url)
+
+                    # Anti-detection: Simulate human behavior with scrolling
+                    import random
+                    time.sleep(random.uniform(1, 2))
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 3);")
+                    time.sleep(random.uniform(0.5, 1))
+                    driver.execute_script("window.scrollTo(0, 0);")
+                    time.sleep(random.uniform(0.5, 1))
+
                     # pick basic info of product
                     product_data = self.scrape_basic_product_details(driver, search_url, attempt, max_products)
                 if deep_details and product_data:
