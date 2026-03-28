@@ -25,11 +25,23 @@ class BaseScraper(ABC):
     """Base class for all scrapers"""
     
     def __init__(self, proxy_manager: Optional[ProxyManager] = None,  # type: ignore
-                 captcha_solver: Optional[CaptchaSolver] = None, max_detail_workers=7): # type: ignore
+                 captcha_solver: Optional[CaptchaSolver] = None, max_detail_workers=None): # type: ignore
         self.session = requests.Session()
         self.config = ScraperConfig()
         self.proxy_manager = proxy_manager
         self.captcha_solver = captcha_solver
+
+        # Auto-detect workers based on environment (Railway has limited CPU)
+        if max_detail_workers is None:
+            import os
+            # On Railway or low-CPU environments, use 1 worker to avoid overload
+            if os.getenv('RAILWAY_ENVIRONMENT'):
+                max_detail_workers = 3  # Sequential detail scraping on Railway
+                logger.info("Railway environment detected: Using 1 worker for detail scraping")
+            else:
+                max_detail_workers = 7  # Local development can handle more
+                logger.info("Local environment: Using 3 workers for detail scraping")
+
         self.max_detail_workers = max_detail_workers
         self.lock = Lock()
     

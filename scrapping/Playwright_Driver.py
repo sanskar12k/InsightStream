@@ -19,6 +19,17 @@ class PlaywrightDriver:
 
     def __enter__(self):
         """Initialize Playwright and create page"""
+        # Fix: Prevent asyncio event loop conflicts in threads
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Running inside asyncio loop - set policy to avoid conflicts
+                asyncio.set_event_loop(None)
+        except RuntimeError:
+            # No event loop in current thread - this is fine
+            pass
+
         self.playwright = sync_playwright().start()
 
         # Launch browser with anti-detection flags
