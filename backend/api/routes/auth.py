@@ -146,7 +146,7 @@ async def google_callback(code: str = None, db: Session = Depends(get_db)):
         # Redirect to frontend with token
         import urllib.parse
         import json
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
         user_json = urllib.parse.quote(json.dumps(user_data))
 
         return RedirectResponse(

@@ -252,6 +252,7 @@ const DashboardPage = () => {
       {/* Search Form Modal */}
       {showSearchForm && (
         <SearchForm
+          key={`search-form-${Date.now()}`} // Force fresh mount to refetch usage stats
           onClose={() => setShowSearchForm(false)}
           onSubmit={handleSearchSubmit}
           loading={initiateSearch.isPending}

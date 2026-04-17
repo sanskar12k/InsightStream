@@ -9,10 +9,14 @@ from fastapi import APIRouter,BackgroundTasks, HTTPException, status, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from backend.services.db_services import DatabaseService as DBService
+from scrapping.proxy_loader import get_proxy_list
 import os
 import pandas as pd
 import numpy as np
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/scrapper",
@@ -73,7 +77,16 @@ def start_scrapping(
         print("Search status updated to IN_PROGRESS for search_id:", search_id)
         # Call the ScraperOrchestrator to start scraping
         from  scrapping.ecommerce_scraper_backend import ScraperOrchestrator
-        scraper = ScraperOrchestrator()
+
+        # Load proxies for bot detection evasion
+        proxy_list = get_proxy_list()
+        scraper = ScraperOrchestrator(proxy_list=proxy_list)
+
+        if proxy_list:
+            logger.info(f"✓ Scraper initialized with {len(proxy_list)} proxies for search_id: {search_id}")
+        else:
+            logger.warning(f"⚠ Scraper running without proxies (may face bot detection) for search_id: {search_id}")
+
         print("ScraperOrchestrator initialized for search_id:", search_id)
         results = scraper.scrape_all(product_name, category, platform, max_products, deep_details, include_reviews)
         csv_data = scraper.export_to_csv_pandas(results, product=product_name.capitalize(), search_id=search_id)
@@ -237,7 +250,7 @@ async def generate_insights_endpoint( search_id: str, background_tasks: Backgrou
 @router.post("/initiate_scrapping", response_model= ScrapperResponse, status_code=status.HTTP_202_ACCEPTED)
 async def scrape_products(
         request: ScrapperRequest,
-        background_tasks: BackgroundTasks,  
+        background_tasks: BackgroundTasks,
         db: Session = Depends(get_db),
         current_user_id = Depends(get_current_user_id)
 ):
@@ -250,9 +263,20 @@ async def scrape_products(
     user = DBService.getUserById(db, int(current_user_id))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
+    # Check if user has exceeded their search limit
+    limit_check = DBService.check_user_limit(db, int(current_user_id))
+    if not limit_check['allowed']:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=limit_check['message']
+        )
+
     try:
         search = DBService.create_search(db, int(current_user_id), ",".join(request.platform), request.product_name, request.category, request.deep_details, request.max_products, request.include_reviews, request.auto_generate_insights)
+
+        # Increment user's search count
+        DBService.increment_user_limit(db, int(current_user_id))
 
         # Wrap scraping to run in thread (fixes Playwright asyncio loop conflict)
         async def run_scrapping_in_thread():

@@ -28,12 +28,12 @@ const OAuthCallbackPage = () => {
         } else {
           console.error('No token or user data found in URL')
           toast.error('Google sign-in failed. Please try again.')
-          navigate('/login', { replace: true })
+          navigate('/', { replace: true })
         }
       } catch (error) {
         console.error('OAuth callback error:', error)
         toast.error('Failed to complete sign-in. Please try again.')
-        navigate('/login', { replace: true })
+        navigate('/', { replace: true })
       }
     }
 

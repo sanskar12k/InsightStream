@@ -1,6 +1,13 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+// ========================================
+// CENTRALIZED API CONFIGURATION
+// ========================================
+// To switch between local and deployed:
+// - Local: Set VITE_API_BASE_URL=http://localhost:8000 in .env.local
+// - Deployed: Set VITE_API_BASE_URL=https://your-backend-url.railway.app in .env.production
+// ========================================
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 // Create axios instance
 const api = axios.create({
@@ -40,8 +47,9 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  register: (data) => api.post('/users/register', data),
-  login: (data) => api.post('/users/login', data),
+  // DEPRECATED: Email/password auth - now using Google OAuth only
+  // register: (data) => api.post('/users/register', data),
+  // login: (data) => api.post('/users/login', data),
   getCurrentUser: () => api.get('/users/me'),
   updatePassword: (data) => api.put('/users/password', data),
   deleteAccount: () => api.delete('/users/me'),

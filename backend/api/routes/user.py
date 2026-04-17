@@ -24,140 +24,139 @@ router = APIRouter(
 #     """Verify a password against its hash"""
 #     return hash_password(plain_password) == hashed_password
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
-    """
-    Register a new user
-    
-    - **name**: Unique username (3-50 characters)
-    - **email**: Valid email address (must be unique)
-    - **password**: Password (minimum 6 characters)
-    
-    Returns the created user data (without password)
-    """
-    # eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImV4cCI6MTc3MzA4MDg3NCwiaWF0IjoxNzcyOTk0NDc0fQ._6Ih3qc-tbt0ttD9na5cdJ0gzz5HkXI6xYmEwjo2oDg
-    # try:
-    #     validate_password_strength(user_data.password)
-    # except ValueError as e:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail=str(e)
-        # )
-    
-    existing_user = DBService.getUserByEmail(db, user_data.email)
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    try:
-        hashed_password = hash_password(user_data.password)
-        new_user = DBService.create_user(db, name=user_data.name, email=user_data.email, password_hash=hashed_password)
-        access_token = create_access_token(
-            data={"sub": str(new_user.user_id)}
-        )
-        return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            user=UserResponse(
-                user_id=new_user.user_id,
-                name=new_user.name,
-                email=new_user.email,
-                created_at=new_user.created_at
-            )
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating user: {str(e)}"
-        )
+# ===================================================================
+# DEPRECATED: Email/Password Registration
+# Only Google OAuth is supported for new user registration
+# ===================================================================
+# @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+# async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
+#     """
+#     Register a new user
+#
+#     - **name**: Unique username (3-50 characters)
+#     - **email**: Valid email address (must be unique)
+#     - **password**: Password (minimum 6 characters)
+#
+#     Returns the created user data (without password)
+#     """
+#     existing_user = DBService.getUserByEmail(db, user_data.email)
+#     if existing_user:
+#         raise HTTPException(status_code=400, detail="Email already registered")
+#
+#     try:
+#         hashed_password = hash_password(user_data.password)
+#         new_user = DBService.create_user(db, name=user_data.name, email=user_data.email, password_hash=hashed_password)
+#         access_token = create_access_token(
+#             data={"sub": str(new_user.user_id)}
+#         )
+#         return TokenResponse(
+#             access_token=access_token,
+#             token_type="bearer",
+#             expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+#             user=UserResponse(
+#                 user_id=new_user.user_id,
+#                 name=new_user.name,
+#                 email=new_user.email,
+#                 created_at=new_user.created_at
+#             )
+#         )
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Error creating user: {str(e)}"
+#         )
 
-@router.post("/login", response_model=TokenResponse)
-async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
-    """
-    Login user with email and password
-
-    - **email**: User's email address
-    - **password**: User's password
-
-    Returns user data on successful login
-    """
-    print(f"DEBUG: Login attempt for email: {user_data.email}")
-    user = DBService.getUserByEmail(db, user_data.email)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid username or password", headers={"WWW-Authenticate": "Bearer"})
-
-    # Check if user registered via OAuth and has no password set
-    if user.password_hash is None or user.password_hash == "":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"This account was created using {user.auth_provider.value} login. Please sign in with {user.auth_provider.value} or set a password first."
-        )
-
-    # Verify password with error handling for legacy passwords
-    try:
-        is_valid = verify_password(user_data.password, user.password_hash)
-    except Exception as e:
-        print(f"ERROR: Password verification failed for {user_data.email}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-
-    try:
-        # Check if password needs rehashing (legacy password detected)
-        # If the stored hash doesn't use our current format, rehash it
-        try:
-            from backend.auth.jwt_auth import _pre_hash_password, pwd_context
-            pre_hashed = _pre_hash_password(user_data.password)
-            # If pre-hashed verification fails, this is a legacy password that needs rehashing
-            if not pwd_context.verify(pre_hashed, user.password_hash):
-                print(f"INFO: Rehashing legacy password for {user_data.email}")
-                new_hash = hash_password(user_data.password)
-                DBService.update_user_password(db, user.user_id, new_hash)
-        except Exception:
-            # If anything goes wrong with rehashing, just continue (user is already authenticated)
-            pass
-
-        DBService.update_last_login(db, user.user_id)
-        # token = create_jwt_token(user.user_id)
-        access_token= create_access_token(
-            data={"sub": str(user.user_id)}
-        )
-
-        return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            user=UserResponse(
-                user_id=user.user_id,
-                name=user.name,
-                email=user.email,
-                created_at=user.created_at,
-                last_login=user.last_login
-            )
-        )
-    
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Login error: {str(e)}"
-        )
+# ===================================================================
+# DEPRECATED: Email/Password Login
+# Only Google OAuth is supported for authentication
+# ===================================================================
+# @router.post("/login", response_model=TokenResponse)
+# async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
+#     """
+#     Login user with email and password
+#
+#     - **email**: User's email address
+#     - **password**: User's password
+#
+#     Returns user data on successful login
+#     """
+#     print(f"DEBUG: Login attempt for email: {user_data.email}")
+#     user = DBService.getUserByEmail(db, user_data.email)
+#     if not user:
+#         raise HTTPException(status_code=401, detail="Invalid username or password", headers={"WWW-Authenticate": "Bearer"})
+#
+#     # Check if user registered via OAuth and has no password set
+#     if user.password_hash is None or user.password_hash == "":
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=f"This account was created using {user.auth_provider.value} login. Please sign in with {user.auth_provider.value} or set a password first."
+#         )
+#
+#     # Verify password with error handling for legacy passwords
+#     try:
+#         is_valid = verify_password(user_data.password, user.password_hash)
+#     except Exception as e:
+#         print(f"ERROR: Password verification failed for {user_data.email}: {str(e)}")
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid email or password",
+#             headers={"WWW-Authenticate": "Bearer"}
+#         )
+#
+#     if not is_valid:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid email or password",
+#             headers={"WWW-Authenticate": "Bearer"}
+#         )
+#
+#     try:
+#         # Check if password needs rehashing (legacy password detected)
+#         # If the stored hash doesn't use our current format, rehash it
+#         try:
+#             from backend.auth.jwt_auth import _pre_hash_password, pwd_context
+#             pre_hashed = _pre_hash_password(user_data.password)
+#             # If pre-hashed verification fails, this is a legacy password that needs rehashing
+#             if not pwd_context.verify(pre_hashed, user.password_hash):
+#                 print(f"INFO: Rehashing legacy password for {user_data.email}")
+#                 new_hash = hash_password(user_data.password)
+#                 DBService.update_user_password(db, user.user_id, new_hash)
+#         except Exception:
+#             # If anything goes wrong with rehashing, just continue (user is already authenticated)
+#             pass
+#
+#         DBService.update_last_login(db, user.user_id)
+#         # token = create_jwt_token(user.user_id)
+#         access_token= create_access_token(
+#             data={"sub": str(user.user_id)}
+#         )
+#
+#         return TokenResponse(
+#             access_token=access_token,
+#             token_type="bearer",
+#             expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+#             user=UserResponse(
+#                 user_id=user.user_id,
+#                 name=user.name,
+#                 email=user.email,
+#                 created_at=user.created_at,
+#                 last_login=user.last_login
+#             )
+#         )
+#
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Login error: {str(e)}"
+#         )
     
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(current_user = Depends(get_current_user)):
     """
     Get current authenticated user's information
-    
+
     Requires: Valid JWT token in Authorization header
-    
+
     Returns user data of the authenticated user
     """
     return UserResponse(
@@ -167,6 +166,27 @@ async def get_current_user_info(current_user = Depends(get_current_user)):
         created_at=current_user.created_at,
         last_login=current_user.last_login
     )
+
+@router.get("/usage-stats")
+async def get_user_usage_stats(
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id)
+):
+    """
+    Get current user's usage statistics (search limits)
+
+    Requires: Valid JWT token in Authorization header
+
+    Returns current_limit, max_limit, and remaining searches
+    """
+    try:
+        stats = DBService.get_user_usage_stats(db, int(current_user_id))
+        return stats
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching usage stats: {str(e)}"
+        )
 
 
 @router.get("/id/{user_id}", response_model=UserResponse)

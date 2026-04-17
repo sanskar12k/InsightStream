@@ -44,46 +44,21 @@ export const AuthProvider = ({ children }) => {
     loadUser()
   }, [])
 
+  // ===================================================================
+  // DEPRECATED: Email/Password Authentication
+  // Now using Google OAuth only - these functions are kept for compatibility
+  // but will not work as backend endpoints are disabled
+  // ===================================================================
   const login = async (email, password) => {
-    try {
-      // Clear all cached data before login to prevent data leakage
-      queryClient.clear()
-      const response = await authAPI.login({ email, password })
-      const { access_token, user: userData } = response.data
-
-      localStorage.setItem('token', access_token)
-      localStorage.setItem('user', JSON.stringify(userData))
-      setUser(userData)
-
-      toast.success('Login successful!')
-      return { success: true }
-    } catch (error) {
-      const message = error.response?.data?.detail || 'Login failed'
-      toast.error(message)
-      return { success: false, error: message }
-    }
+    toast.error('Email/password login is deprecated. Please use Google Sign In.')
+    return { success: false, error: 'Email/password login is deprecated. Please use Google Sign In.' }
   }
 
   const register = async (name, email, password) => {
-    try {
-      // Clear all cached data before registration
-      queryClient.clear()
-
-      const response = await authAPI.register({ name, email, password })
-      const { access_token, user: userData } = response.data
-
-      localStorage.setItem('token', access_token)
-      localStorage.setItem('user', JSON.stringify(userData))
-      setUser(userData)
-
-      toast.success('Registration successful!')
-      return { success: true }
-    } catch (error) {
-      const message = error.response?.data?.detail || 'Registration failed'
-      toast.error(message)
-      return { success: false, error: message }
-    }
+    toast.error('Email/password registration is deprecated. Please use Google Sign In.')
+    return { success: false, error: 'Email/password registration is deprecated. Please use Google Sign In.' }
   }
+  // ===================================================================
 
   const logout = () => {
     // Clear all React Query cache to prevent data leakage

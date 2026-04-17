@@ -9,8 +9,18 @@ from fastapi.exceptions import RequestValidationError
 from starlette.middleware.sessions import SessionMiddleware
 from backend.config import setting
 
-# Load environment variables from backend/.env
-load_dotenv(dotenv_path=Path(__file__).parent / "backend" / ".env") 
+# Load environment variables
+# Priority: .env.local (local dev) > .env (production/default)
+backend_dir = Path(__file__).parent / "backend"
+env_local = backend_dir / ".env.local"
+env_default = backend_dir / ".env"
+
+if env_local.exists():
+    load_dotenv(dotenv_path=env_local)
+    print(f"✅ Loaded environment from: {env_local}")
+else:
+    load_dotenv(dotenv_path=env_default)
+    print(f"✅ Loaded environment from: {env_default}") 
 
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))

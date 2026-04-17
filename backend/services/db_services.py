@@ -317,3 +317,156 @@ class DatabaseService:
             db.refresh(search)
         return search
 
+    @staticmethod
+    def check_user_limit(db: Session, user_id: int) -> dict:
+        """
+        Check if user has remaining searches available.
+
+        Args:
+            db: Database session
+            user_id: User ID to check
+
+        Returns:
+            Dictionary with 'allowed' (bool), 'current_limit', 'max_limit'
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            logger.error(f"User {user_id} not found")
+            return {'allowed': False, 'current_limit': 0, 'max_limit': 0, 'message': 'User not found'}
+
+        # Check if usage limit columns exist
+        try:
+            current_limit = getattr(user, 'current_limit', None)
+            max_limit = getattr(user, 'max_limit', None)
+
+            if current_limit is None or max_limit is None:
+                logger.error(f"Usage limit columns missing for user {user_id}. Run database migration!")
+                logger.error("Run: scripts/add_usage_limits.sql in Railway console")
+                # Allow access but log error
+                return {'allowed': True, 'current_limit': 0, 'max_limit': 0, 'message': 'Usage limits not configured'}
+        except AttributeError as e:
+            logger.error(f"AttributeError accessing usage limits: {e}")
+            return {'allowed': True, 'current_limit': 0, 'max_limit': 0, 'message': 'Usage limits not configured'}
+
+        # Check if user is the owner (unlimited access)
+        if user.email == "sanskarmodanwal8@gmail.com":
+            logger.info(f"Owner {user.email} accessing with unlimited limit")
+            return {'allowed': True, 'current_limit': current_limit, 'max_limit': -1, 'message': 'Unlimited access'}
+
+        # Check if user has exceeded their limit
+        logger.info(f"Checking limit for user {user_id}: {current_limit}/{max_limit}")
+
+        if current_limit >= max_limit:
+            logger.warning(f"User {user_id} ({user.email}) exceeded limit: {current_limit}/{max_limit}")
+            return {
+                'allowed': False,
+                'current_limit': current_limit,
+                'max_limit': max_limit,
+                'message': f'You have reached your limit of {max_limit} search(es). Please contact support for more access.'
+            }
+
+        logger.info(f"User {user_id} ({user.email}) has {max_limit - current_limit} searches remaining")
+        return {
+            'allowed': True,
+            'current_limit': current_limit,
+            'max_limit': max_limit,
+            'message': 'Access granted'
+        }
+
+    @staticmethod
+    def increment_user_limit(db: Session, user_id: int) -> bool:
+        """
+        Increment the current_limit counter for a user.
+
+        Args:
+            db: Database session
+            user_id: User ID to increment
+
+        Returns:
+            True if incremented successfully, False otherwise
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            logger.error(f"Cannot increment limit: User {user_id} not found")
+            return False
+
+        try:
+            current_limit = getattr(user, 'current_limit', None)
+            if current_limit is None:
+                logger.error(f"Cannot increment: current_limit column missing for user {user_id}")
+                logger.error("Run database migration: scripts/add_usage_limits.sql")
+                return False
+
+            old_limit = user.current_limit
+            user.current_limit += 1
+            db.commit()
+            db.refresh(user)
+
+            logger.info(f"✓ Incremented limit for user {user_id} ({user.email}): {old_limit} → {user.current_limit}")
+            return True
+        except AttributeError as e:
+            logger.error(f"AttributeError incrementing limit for user {user_id}: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Error incrementing limit for user {user_id}: {e}")
+            db.rollback()
+            return False
+
+    @staticmethod
+    def get_user_usage_stats(db: Session, user_id: int) -> dict:
+        """
+        Get usage statistics for a user.
+
+        Args:
+            db: Database session
+            user_id: User ID
+
+        Returns:
+            Dictionary with current_limit, max_limit, remaining
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            logger.error(f"User {user_id} not found for usage stats")
+            return {'current_limit': 0, 'max_limit': 0, 'remaining': 0, 'unlimited': False}
+
+        try:
+            current_limit = getattr(user, 'current_limit', None)
+            max_limit = getattr(user, 'max_limit', None)
+
+            if current_limit is None or max_limit is None:
+                logger.error(f"Usage limit columns missing for user {user_id}")
+                logger.error("Run database migration: scripts/add_usage_limits.sql in Railway console")
+                return {'current_limit': 0, 'max_limit': 0, 'remaining': 0, 'unlimited': False, 'error': 'Migration required'}
+
+            # Owner has unlimited access
+            if user.email == "sanskarmodanwal8@gmail.com":
+                logger.info(f"Fetching stats for owner {user.email}")
+                return {
+                    'current_limit': current_limit,
+                    'max_limit': -1,
+                    'remaining': -1,
+                    'unlimited': True
+                }
+
+            remaining = max(0, max_limit - current_limit)
+            logger.info(f"Stats for user {user_id} ({user.email}): {current_limit}/{max_limit} ({remaining} remaining)")
+
+            return {
+                'current_limit': current_limit,
+                'max_limit': max_limit,
+                'remaining': remaining,
+                'unlimited': False
+            }
+        except AttributeError as e:
+            logger.error(f"AttributeError getting stats for user {user_id}: {e}")
+            return {'current_limit': 0, 'max_limit': 0, 'remaining': 0, 'unlimited': False, 'error': 'Migration required'}
+

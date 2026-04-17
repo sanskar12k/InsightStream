@@ -12,9 +12,16 @@ from dotenv import load_dotenv
 # DB_PORT = '3306'
 # DB_DATABASE = 'ecommerce_research'
 
-# Load .env from backend directory
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+# Load environment variables
+# Priority: .env.local (local dev) > .env (production/default)
+backend_dir = Path(__file__).parent.parent
+env_local = backend_dir / ".env.local"
+env_default = backend_dir / ".env"
+
+if env_local.exists():
+    load_dotenv(dotenv_path=env_local)
+else:
+    load_dotenv(dotenv_path=env_default)
 
 DB_USER = os.getenv('MYSQLUSER')
 DB_PASSWORD = os.getenv('MYSQLPASSWORD')

@@ -25,6 +25,8 @@ class User(Base):
     auth_provider = Column(Enum(AuthProvider, values_callable=lambda x: [e.value for e in x]), default=AuthProvider.LOCAL, nullable=False)  # Auth method
     last_login = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
     created_at = Column(DateTime, default=datetime.now(), nullable=False)
+    max_limit = Column(Integer, default=1, nullable=False)  # Maximum allowed searches (1 for free users)
+    current_limit = Column(Integer, default=0, nullable=False)  # Number of searches already performed
 
 
     searches = relationship("Search", back_populates="owner")    

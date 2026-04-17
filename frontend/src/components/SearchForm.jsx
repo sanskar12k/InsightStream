@@ -1,5 +1,7 @@
-import { useState } from 'react'
-import { X, Search } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, Search, AlertCircle } from 'lucide-react'
+import axios from 'axios'
+import { API_BASE_URL } from '../services/api'
 
 const SearchForm = ({ onClose, onSubmit, loading }) => {
   const [formData, setFormData] = useState({
@@ -12,6 +14,29 @@ const SearchForm = ({ onClose, onSubmit, loading }) => {
     auto_generate_insights: false,
   })
   const [errors, setErrors] = useState({})
+  const [usageStats, setUsageStats] = useState(null)
+  const [loadingStats, setLoadingStats] = useState(true)
+
+  // Fetch usage statistics when component mounts
+  useEffect(() => {
+    const fetchUsageStats = async () => {
+      try {
+        const token = localStorage.getItem('authToken')
+        const response = await axios.get(`${API_BASE_URL}/users/usage-stats`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        setUsageStats(response.data)
+      } catch (error) {
+        console.error('Error fetching usage stats:', error)
+      } finally {
+        setLoadingStats(false)
+      }
+    }
+
+    fetchUsageStats()
+  }, [])
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -229,25 +254,73 @@ const SearchForm = ({ onClose, onSubmit, loading }) => {
             </label>
           </div>
 
+          {/* Usage Limit Info */}
+          {!loadingStats && usageStats && !usageStats.unlimited && (
+            <div className={`p-4 rounded-lg ${
+              usageStats.remaining > 0
+                ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+            }`}>
+              <div className="flex items-start gap-3">
+                <AlertCircle className={`w-5 h-5 mt-0.5 ${
+                  usageStats.remaining > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'
+                }`} />
+                <div className="flex-1">
+                  <p className={`text-sm font-semibold ${
+                    usageStats.remaining > 0 ? 'text-blue-900 dark:text-blue-100' : 'text-red-900 dark:text-red-100'
+                  }`}>
+                    {usageStats.remaining > 0
+                      ? `Free Tier: ${usageStats.remaining} of ${usageStats.max_limit} search${usageStats.max_limit > 1 ? 'es' : ''} remaining`
+                      : 'Free Tier Limit Reached'
+                    }
+                  </p>
+                  {usageStats.remaining === 0 && (
+                    <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                      You have used all your free searches. Please contact support for additional access.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Submit Buttons */}
           <div className="flex gap-4 pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 btn-primary shadow-xl"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Initiating...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <Search className="w-5 h-5" />
-                  Start Search
-                </span>
+            <div className="flex-1 relative group">
+              <button
+                type="submit"
+                disabled={loading || (!loadingStats && usageStats && !usageStats.unlimited && usageStats.remaining === 0)}
+                className={`w-full shadow-xl transition-all duration-300 ${
+                  loading || (!loadingStats && usageStats && !usageStats.unlimited && usageStats.remaining === 0)
+                    ? 'btn-primary opacity-50 cursor-not-allowed'
+                    : 'btn-primary hover:scale-105 active:scale-95'
+                }`}
+                title={
+                  !loadingStats && usageStats && !usageStats.unlimited && usageStats.remaining === 0
+                    ? 'You have used your free limit. Contact support for more access.'
+                    : ''
+                }
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Initiating...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <Search className="w-5 h-5" />
+                    Start Search
+                  </span>
+                )}
+              </button>
+              {/* Hover Tooltip */}
+              {!loadingStats && usageStats && !usageStats.unlimited && usageStats.remaining === 0 && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                  You have used your free limit as of now
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+                </div>
               )}
-            </button>
+            </div>
             <button
               type="button"
               onClick={onClose}
