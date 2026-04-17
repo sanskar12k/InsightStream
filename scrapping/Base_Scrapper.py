@@ -34,13 +34,13 @@ class BaseScraper(ABC):
         # Auto-detect workers based on environment (Railway has limited CPU)
         if max_detail_workers is None:
             import os
-            # On Railway or low-CPU environments, use 1 worker to avoid overload
+            # On Railway or low-CPU environments, use 3 workers for faster scraping
             if os.getenv('RAILWAY_ENVIRONMENT'):
-                max_detail_workers = 1  # Sequential detail scraping on Railway
-                logger.info("Railway environment detected: Using 1 worker for detail scraping")
+                max_detail_workers = 3  # Increased to 3 for faster scraping on Railway
+                logger.info("Railway environment detected: Using 3 workers for detail scraping")
             else:
                 max_detail_workers = 7  # Local development can handle more
-                logger.info("Local environment: Using 3 workers for detail scraping")
+                logger.info("Local environment: Using 7 workers for detail scraping")
 
         self.max_detail_workers = max_detail_workers
         self.lock = Lock()
@@ -83,7 +83,7 @@ class BaseScraper(ABC):
                             'if(typeof ___grecaptcha_cfg !== "undefined") { '
                             'Object.values(___grecaptcha_cfg.clients).forEach(c => c.callback && c.callback()); }'
                         )
-                        time.sleep(2)
+                        time.sleep(1.5)
                         return True
             
             # Check for hCaptcha
@@ -99,7 +99,7 @@ class BaseScraper(ABC):
                         driver.execute_script(
                             f'document.querySelector("[name=h-captcha-response]").innerHTML="{solution}";'
                         )
-                        time.sleep(2)
+                        time.sleep(1)
                         return True
             
             return False

@@ -212,7 +212,7 @@ class AmazonScraper(BaseScraper):
                     driver.execute_script("arguments[0].click();", next_page_elem)
                 
                 # Small pause to ensure the browser has time to trigger the navigation event
-                time.sleep(2) 
+                time.sleep(1.5) 
                 
             except Exception as e:            
                 logger.info(f"Failed to navigate to next page or no more pages: {e}")
@@ -233,7 +233,7 @@ class AmazonScraper(BaseScraper):
         logger.info(f"Parsing products (attempt {attempt + 1})")
             # Scroll to load lazy content
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
-        time.sleep(1)    
+        time.sleep(0.75)    
         product_data = self.scrape_basic_product_details_helper(driver, max_products)
         return product_data
     
@@ -643,7 +643,7 @@ class AmazonScraper(BaseScraper):
                     accordion_button
                 )
                 driver.execute_script("arguments[0].click();", accordion_button)
-                time.sleep(0.5)
+                time.sleep(0.4)
                 # logger.info("✓ Expanded Item Details accordion")
                 
         except Exception as e:
@@ -817,11 +817,11 @@ class AmazonScraper(BaseScraper):
 
                     # Anti-detection: Simulate human behavior with scrolling
                     import random
-                    time.sleep(random.uniform(1, 2))
+                    time.sleep(random.uniform(0.5, 1))
                     driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 3);")
-                    time.sleep(random.uniform(0.5, 1))
+                    time.sleep(random.uniform(0.25, 0.5))
                     driver.execute_script("window.scrollTo(0, 0);")
-                    time.sleep(random.uniform(0.5, 1))
+                    time.sleep(random.uniform(0.25, 0.5))
 
                     # pick basic info of product
                     product_data = self.scrape_basic_product_details(driver, search_url, attempt, max_products)

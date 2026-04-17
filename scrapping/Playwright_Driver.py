@@ -98,8 +98,8 @@ class PlaywrightDriver:
         import time
         import random
 
-        # Anti-detection: Random delay before navigation (0.5-2 seconds)
-        time.sleep(random.uniform(0.5, 2.0))
+        # Anti-detection: Random delay before navigation (0.25-1 seconds)
+        time.sleep(random.uniform(0.25, 1.0))
 
         # Use networkidle for more reliable load detection (waits for network to be idle)
         try:

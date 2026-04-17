@@ -54,7 +54,7 @@ class FlipkartScraper(BaseScraper):
                     
                     # Scroll
                     driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
-                    time.sleep(2)
+                    time.sleep(1.5)
                     
                     # Parse products
                     product_elements = driver.find_elements(By.CSS_SELECTOR, '[data-id]')
